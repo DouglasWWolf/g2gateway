@@ -8,6 +8,13 @@
 #include "globals.h"
 
 //=================================================================================================
+// This IP and MAC address are all zeros
+//=================================================================================================
+static sIP  broadcast_ip;
+static sMAC broadcast_mac;
+//=================================================================================================
+
+//=================================================================================================
 // main() - Sits in a loop, listening for and handling incoming CHCP messages
 //=================================================================================================
 void CCHCP::main(void* p1, void* p2, void* p3)
@@ -15,10 +22,11 @@ void CCHCP::main(void* p1, void* p2, void* p3)
     u8        message[300];
     UDPSocket sock;
     u32       source_ip;
-    sMAC      broadcast_mac;
 
     // Map all of our message types over the message buffer
     sCHCP_HEADER        & header           = *(sCHCP_HEADER        *)&message;
+    sCHCP_PING          & msg_ping         = *(sCHCP_PING          *)&message;
+    sCHCP_PING_TO       & msg_ping_to      = *(sCHCP_PING_TO       *)&message;
 
     // Create a MAC address object that CHCP uses to say "this is for everyone who can hear me"
     memset(&broadcast_mac, 0, sizeof broadcast_mac);
@@ -46,6 +54,14 @@ again:
             Heralder.stop();
             goto again;
             break;
+
+        case CHCP_PING:
+            handle_chcp_ping(msg_ping);
+            break;
+
+        case CHCP_PING_TO:
+            handle_chcp_ping_to(msg_ping_to);
+            break;
     }
 
     // And go wait for the next CHCP message to arrive
@@ -53,6 +69,35 @@ again:
 
 }
 //=================================================================================================
+
+
+//=================================================================================================
+// handle_chcp_ping() - If have the IP specified in the message, send a herald in response
+//=================================================================================================
+void CCHCP::handle_chcp_ping(sCHCP_PING& msg)
+{
+    if (msg.ip == broadcast_ip || msg.ip == Network.ip())
+    {
+        Heralder.send();
+    }
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_chcp_ping_to() - Like chcp_ping, but sends the herald to a different port
+//=================================================================================================
+void CCHCP::handle_chcp_ping_to(sCHCP_PING_TO& msg)
+{
+    if (msg.ip == broadcast_ip || msg.ip == Network.ip())
+    {
+        Heralder.send(msg.dest_port);
+    }
+}
+//=================================================================================================
+
+
+
 
 
 #if 0

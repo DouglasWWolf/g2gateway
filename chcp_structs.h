@@ -69,6 +69,83 @@ struct sCHCP_HEADER
 //=================================================================================================
 
 
+
+//=================================================================================================
+// These are the message structures of individual CHCP messages
+//=================================================================================================
+struct sCHCP_PING
+{
+    u8   type;
+    sMAC mac;
+    sIP  ip;
+};
+
+struct sCHCP_PING_TO
+{
+    u8    type;
+    sMAC  mac;
+    sIP   ip;
+    u16be dest_port;
+};
+
+
+#if 0
+
+struct sCHCP_ASSIGN_IP
+{
+    U8   type;
+    sMAC MAC;
+    sIP  IP;
+};
+
+
+struct sCHCP_SET_IP
+{
+    U8   type;
+    sMAC MAC;
+    sIP  IP;
+};
+
+struct sCHCP_SET_MAC
+{
+    U8   type;
+    sMAC MAC;
+    sMAC newMAC;
+};
+
+struct sCHCP_ASSIGN_LETTER
+{
+    U8   type;
+    sMAC MAC;
+    U8   letter;
+};
+
+struct sCHCP_TRASH_FIRMWARE
+{
+    U8    type;
+    sMAC  MAC;
+    U32BE password;
+};
+
+struct sCHCP_RESET
+{
+    U8    type;
+    sMAC  MAC;
+};
+
+struct sCHCP_DEVICE_BCAST
+{
+    U8          type;
+    sMAC        MAC;
+    U8          msg_length;
+    U8          msg_data[256];
+};
+#endif
+//=================================================================================================
+
+
+
+
 //=================================================================================================
 // Product families
 //=================================================================================================

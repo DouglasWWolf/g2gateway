@@ -3,7 +3,7 @@
 //=================================================================================================
 #pragma once
 #include "cthread.h"
-
+#include "chcp_structs.h"
 
 class CCHCP : public CThread
 {
@@ -12,4 +12,7 @@ public:
     // When this thread spawns, this is the entry ppoint
     void  main(void* p1, void* p2, void* p3);
 
+    // CHCP message handlers
+    void handle_chcp_ping   (sCHCP_PING   & msg);
+    void handle_chcp_ping_to(sCHCP_PING_TO& msg);
 };

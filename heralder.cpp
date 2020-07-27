@@ -64,16 +64,30 @@ void CHeralder::create_new_socket()
 //=================================================================================================
 // Send() - Any thread may call this to send a herald
 //=================================================================================================
-void CHeralder::send()
+void CHeralder::send(int port)
 {
+    UDPSocket sock, *p_sock;
+
     // If we're suspended, don't transmit anything!
     if (m_is_silent) return;
 
     // No one is allowed to delete the socket while we have this locked
     m_heralding_cs.lock();
 
-    // Point to our default socket
-    UDPSocket* p_sock = m_p_socket;
+    // If the caller wants to send the herald to a non-standard port...
+    if (port)
+    {
+
+        // Create a socket that can broadcast UDP packets
+        sock.create_sender(port);
+        sock.bind_to(Network.ip().to_string());
+
+        // And point to this temporary socket we just created
+        p_sock = &sock;
+    }
+
+    // Otherwise, just point to our already created socket
+    else p_sock = m_p_socket;
 
     // Make sure no one updates the herald while we're sending it
     m_herald_cs.lock();

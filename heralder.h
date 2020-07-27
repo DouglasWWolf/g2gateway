@@ -28,12 +28,12 @@ public:
     void             start() {m_is_heralding = true;}
     void             stop()  {m_is_heralding = false;}
     void             silent(bool state = true) {m_is_silent = state;}
-    void             send();
+    void             send(int port = 0);
 
     // These are called by other threads to change the contents of the herald
     void             build_herald     ();
     void             set_herald_mac   ();
-    void             set_herland_sn   ();
+    void             set_herald_sn   ();
     void             set_herald_ip    ();
     void             set_herald_letter();
 

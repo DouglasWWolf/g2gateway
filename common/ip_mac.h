@@ -1,4 +1,6 @@
 #pragma once
+#include <stdint.h>
+#include <cppstring.h>
 
 //=================================================================================================
 // These define an IP address and a MAC address
