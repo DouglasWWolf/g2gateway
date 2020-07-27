@@ -32,7 +32,7 @@ again:
     sock.get(message, sizeof(message), &source_ip);
 
     // If this CHCP message isn't intended for us, ignore it
-    if (header.MAC != broadcast_mac && header.MAC != Instrument.mac) goto again;
+    if (header.MAC != broadcast_mac && header.MAC != Network.mac()) goto again;
 
     // Process CHCP messages that both the DLM and the gateway can handle
     switch (header.type)

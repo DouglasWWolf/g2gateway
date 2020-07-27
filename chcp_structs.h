@@ -35,20 +35,22 @@
 
 
 //=================================================================================================
-//  Herald: Sent every two seconds at startup, or every two seconds upon receipt of a Herald On
+// Herald: Sent every two seconds at startup, or every two seconds upon receipt of a Herald On
+//
+// The prefix "be_" indicates this field is big-endian
 //=================================================================================================
 struct sCHCP_HERALD
 {
     u8    type;
     sMAC  mac;
     u8    version;
-    sIP   no_ip;
+    sIP   be_ip;
     u8    flags;
     u8    block_letter;
     u8    fw_major;
     u8    fw_minor;
     u8    fw_build;
-    u32be no_serial_num;
+    u32be be_serial_num;
     u8    family;
     u8    filler[10];
 };

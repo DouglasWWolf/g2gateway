@@ -53,7 +53,7 @@ void CHeralder::create_new_socket()
     m_p_socket->create_sender(1217);
 
     // Bind this socket to the network interface we're using
-    m_p_socket->bind_to(Instrument.ip.to_string());
+    m_p_socket->bind_to(Network.ip().to_string());
 
     // Unlock the heralding socket
     m_heralding_cs.unlock();
@@ -112,13 +112,13 @@ void CHeralder::build_herald()
     m_herald.type = CHCP_HERALD;
 
     // Fill in the MAC address with our current MAC address
-    m_herald.mac = Instrument.mac;
+    m_herald.mac = Network.mac();
 
     // This is Herald version #2.  (Version #2 adds the gateway serial number)
     m_herald.version = 2;
 
     // Fill in the IP address with our current IP address
-    m_herald.no_ip = Instrument.ip;
+    m_herald.be_ip = Network.ip();
 
     // We have no special features that we want to advertise
     m_herald.flags = 0;
@@ -132,7 +132,7 @@ void CHeralder::build_herald()
     m_herald.fw_build = Instrument.fw_build;
 
     // Fill in the serial number
-    m_herald.no_serial_num = instrument_sn;
+    m_herald.be_serial_num = instrument_sn;
 
     // This gateway is in the G2 family
     m_herald.family = FAMILY_G2;

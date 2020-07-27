@@ -12,8 +12,6 @@
 
 struct instrument_t
 {
-    sIP     ip;
-    sMAC    mac;
     int     letter;
     int     fw_major;
     int     fw_minor;
