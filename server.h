@@ -38,6 +38,12 @@ public:
     // When a
     void    main(void* p1, void* p2, void* p3);
 
+    // Set the slot number (-1 or 0 thru 3) for this server
+    void    set_slot(int slot);
+
+    // Call this to find out if the server thread is initialized
+    bool    is_initialized() {return m_is_initialized;}
+
 protected:
 
     // This reads a GXIP message from the socket into m_tcp_packet
@@ -45,6 +51,9 @@ protected:
 
     // -1 (for the gateway master port) or 0 thru 3 (for ordinary module connections)
     int          m_slot;
+
+    // This is the TCP port we're listening to
+    int          m_tcp_port;
 
     // Other threads can send us messages by writing to this pipe
     int          m_special_pipe[2];
@@ -57,6 +66,7 @@ protected:
 
     // This is the server socket that people connect to us on
     CNetSock     m_socket;
+
 
     // This is a message from the socket
     tcp_packet_t m_tcp_packet;

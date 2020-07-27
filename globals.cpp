@@ -24,6 +24,9 @@ CHeralder    Heralder;
 // Thread that listens for and handles incoming CHCP message
 CCHCP        CHCP;
 
+// These are the servers that handle GXIP messages
+CServer      Server[MAX_GXIP_SERVERS];
+
 // This holds information about this instrument such as IP address, MAC, serial number, etc
 instrument_t Instrument;
 

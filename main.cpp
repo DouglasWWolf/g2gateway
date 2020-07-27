@@ -89,12 +89,35 @@ void init()
         exit(1);
     }
 
-
     // Populate the "Instrument" object with the version of this software
     parse_firmware_version();
 
 }
 //=================================================================================================
+
+
+//=================================================================================================
+// launch_servers() - Launches all the TCP servers and waits for them to initialize
+//=================================================================================================
+void launch_servers()
+{
+    int i;
+
+    // Launch all of the servers
+    for (i=0; i<MAX_GXIP_SERVERS; ++i)
+    {
+        Server[i].set_slot(i-1);
+        Server[i].spawn();
+    }
+
+    // Wait for all of the servers to be ready
+    for (i=0; i<MAX_GXIP_SERVERS; ++i)
+    {
+        while (!Server[i].is_initialized()) usleep(100000);
+    }
+}
+//=================================================================================================
+
 
 
 //=================================================================================================
@@ -104,6 +127,9 @@ int main(int argc, char** argv)
 {
     // Read in our spec-file and initialize all of our global objects
     init();
+
+    // Launch and wait for the servers to all come up
+    launch_servers();
 
     // Launch the thread that will emit herald messsages every couple of second
     Heralder.spawn();

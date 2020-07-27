@@ -25,7 +25,6 @@ static int bytes_available(int fd)
 
 
 
-
 //=================================================================================================
 // drain_fd() - Drains (and throws away) all bytes available for reading on a file descriptor
 //=================================================================================================
@@ -85,22 +84,32 @@ bool CServer::read_gxip_msg_from_socket(int sd)
 //=================================================================================================
 
 
+//=================================================================================================
+// set_slot() - Gives the server information to understand which GX module slot (if any) it is
+//
+// Passed: slot = -1 (for the dedicated gateway server) or 0 thru 3 (for the GX servers)
+//
+// On Exit: m_slot     = the saved slot number
+//          m_tcp_port = the TCP port that this server should listen on
+//=================================================================================================
+void CServer::set_slot(int slot)
+{
+    // Find out what slot number we're in
+    m_slot = slot;
+
+    // Determine which TCP port this server will be listening on
+    m_tcp_port = (slot == -1) ? 1066 :m_slot + 921;
+}
+//=================================================================================================
+
 
 //=================================================================================================
 // main() - When this thread spawns, execution starts here
-//
-// p1 = Slot number (-1, or 0 thru 3)
 //=================================================================================================
 void CServer::main(void* p1, void* p2, void* p3)
 {
     fd_set  rfds;
     char    special_cmd;
-
-    // Find out what slot number we're in
-    m_slot = (long long)p1;
-
-    // Determine which TCP port this server will be listening on
-    int tcp_port = (m_slot == -1) ? 1066 :m_slot + 921;
 
     // Other threads send us messages by writing to this pipe
     pipe(m_special_pipe);
@@ -122,25 +131,25 @@ wait_for_connect:
     m_is_connected = false;
 
     // Tell the world what's up
-    printf("Waiting for connection on port %i\n", tcp_port);
+    printf("Waiting for connection on port %i\n", m_tcp_port);
 
     // Create the server socket
-    if (!m_socket.create_server(tcp_port))
+    if (!m_socket.create_server(m_tcp_port))
     {
-        printf("FAILED TO CREATE SERVER ON PORT %i\n", tcp_port);
+        printf("FAILED TO CREATE SERVER ON PORT %i\n", m_tcp_port);
     }
 
     // Wait for a connection from the outside world
     if (!m_socket.accept())
     {
-        printf("FAILED TO ACCEPT CONNECTIONS ON PORT %i\n", tcp_port);
+        printf("FAILED TO ACCEPT CONNECTIONS ON PORT %i\n", m_tcp_port);
     }
 
     // There is now a client connected to our socket
     m_is_connected = true;
 
     // Display a message to the console
-    printf("Client connected to Port %i\n", tcp_port);
+    printf("Client connected to Port %i\n", m_tcp_port);
 
     // Make sure there are no leftover commands waiting in the command pipe
     drain_fd(special_fd);
@@ -174,7 +183,7 @@ WaitForData:
         if (special_cmd == SPECIAL_CLOSE)
         {
             // Display a message to the console
-            printf("Port %i closed by CHCP_RESET\n", tcp_port);
+            printf("Port %i closed by CHCP_RESET\n", m_tcp_port);
 
             // We're no longer connected
             m_is_connected = false;
@@ -194,7 +203,7 @@ WaitForData:
         if (!read_gxip_msg_from_socket(sd))
         {
             m_socket.close();
-            printf("Port %i closed by client\n", tcp_port);
+            printf("Port %i closed by client\n", m_tcp_port);
             goto wait_for_connect;
         }
 

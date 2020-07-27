@@ -8,7 +8,9 @@
 #include "network_if.h"
 #include "heralder.h"
 #include "chcp.h"
+#include "server.h"
 
+#define MAX_GXIP_SERVERS 5
 
 struct instrument_t
 {
@@ -27,3 +29,4 @@ extern CNetworkIF   Network;
 extern CHeralder    Heralder;
 extern instrument_t Instrument;
 extern CCHCP        CHCP;
+extern CServer      Server[MAX_GXIP_SERVERS];
