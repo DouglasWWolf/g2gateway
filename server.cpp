@@ -57,6 +57,36 @@ CServer::CServer()
 
 
 //=================================================================================================
+// read_gxip_msg_from_socket() - Fetches a GXIP message from the socket
+//=================================================================================================
+bool CServer::read_gxip_msg_from_socket(int sd)
+{
+    char* remaining_packet = ((char*)&m_tcp_packet)+2;
+    int   remaining_size   = sizeof(m_tcp_packet) - 2;
+
+    // Read the first two bytes of the message, it's the msg length
+    if (read(sd, &m_tcp_packet, 2) < 2) return false;
+
+    // Find out how long entire message is (including the two length bytes)
+    int msg_length = (m_tcp_packet.length_h << 8) | m_tcp_packet.length_l;
+
+    // This is how many more bytes we should find in this message
+    int bytes_expected = msg_length - 2;
+
+    // If this can't possibly be a valid length, close the socket
+    if (bytes_expected < 1 || bytes_expected > remaining_size) return false;
+
+    // Read in the rest of the message
+    int bytes_read = read(sd, remaining_packet, bytes_expected);
+
+    // Tell the caller whether we read an entire message
+    return (bytes_read == bytes_expected);
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
 // main() - When this thread spawns, execution starts here
 //
 // p1 = Slot number (-1, or 0 thru 3)
@@ -160,22 +190,8 @@ WaitForData:
     // If data arrived on the socket...
     if (FD_ISSET(sd, &rfds))
     {
-        // Read the first two bytes of the message, it's the msg length
-        if (read(sd, &m_tcp_packet, 2) < 2)
-        {
-            m_socket.close();
-            printf("Port %i closed by client\n", tcp_port);
-            goto wait_for_connect;
-        }
-
-        // This is how many more bytes we should find in this message
-        int bytes_expected = msg_length - 2;
-
-        // Read in the rest of the message
-        int bytes_read = read(sd, &m_tcp_packet.type, bytes_expected);
-
-        // If this read failed, it implies the other side closed the socket
-        if (bytes_read != bytes_expected)
+        // Read in an entire GXIP message from the socket into m_tcp_packet;
+        if (!read_gxip_msg_from_socket(sd))
         {
             m_socket.close();
             printf("Port %i closed by client\n", tcp_port);
@@ -201,10 +217,6 @@ WaitForData:
             case CMD_E_PKT:
             case REQ_E_PKT:
                 HandleCmdReqMsg();
-                goto WaitForData;
-
-            case CAM_PKT:
-                HandleCameraRequest(msg_id, msg_length - 4);
                 goto WaitForData;
         }
 #endif

@@ -40,6 +40,9 @@ public:
 
 protected:
 
+    // This reads a GXIP message from the socket into m_tcp_packet
+    bool         read_gxip_msg_from_socket(int fd);
+
     // -1 (for the gateway master port) or 0 thru 3 (for ordinary module connections)
     int          m_slot;
 
