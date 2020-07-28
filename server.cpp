@@ -24,7 +24,6 @@
 //=================================================================================================
 
 
-
 //=================================================================================================
 // When a packet comes in from he TCP client, it will contain one of these packet types
 //=================================================================================================
@@ -300,7 +299,7 @@ wait_for_connect:
     // Make sure there are no leftover commands waiting in the command pipe
     drain_fd(special_fd);
 
-    // Turn off nagling on the socket so that data is not buffered after we send it
+    // Turn off Nagling on the socket so that data is not buffered after we send it
     m_socket.set_nagling(false);
 
     // Figure out what the largest file descriptor is
@@ -353,6 +352,7 @@ wait_for_data:
             goto wait_for_connect;
         }
 
+        // And dispatch this GXIP message to the appropriate handler
         switch(m_tcp_packet.type)
         {
             case PRO_PKT:

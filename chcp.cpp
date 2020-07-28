@@ -187,6 +187,9 @@ void CCHCP::handle_chcp_assign_ip(sIP ip)
     // Reset all of the client socket connections
     reset_server_connections();
 
+    // Bind our outgoing herald socket to our new IP address
+    Heralder.create_new_socket();
+
     // Stuff the new IP into our herald
     Heralder.build_herald();
 
