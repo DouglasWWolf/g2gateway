@@ -41,7 +41,7 @@ protected:
      // Read in the spec-file from a buffer
      void   read_from_buffer(const char* buffer);
 
-          // Write the text of the specfile to a buffer
+     // Write the text of the specfile to a buffer
      void   write_to_buffer(char* buffer);
 
      // The size of the buffer required to store the current spec-file

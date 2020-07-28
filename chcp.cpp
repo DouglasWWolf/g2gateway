@@ -43,13 +43,12 @@ void CCHCP::main(void* p1, void* p2, void* p3)
     u32       source_ip;
 
     // Map all of our message types over the message buffer
-    sCHCP_HEADER        & header           = *(sCHCP_HEADER        *)&message;
-    sCHCP_PING          & msg_ping         = *(sCHCP_PING          *)&message;
-    sCHCP_PING_TO       & msg_ping_to      = *(sCHCP_PING_TO       *)&message;
-    sCHCP_RESET         & msg_reset        = *(sCHCP_RESET         *)&message;
-    sCHCP_ASSIGN_IP     & msg_assign_ip    = *(sCHCP_ASSIGN_IP     *)&message;
-    sCHCP_SET_IP        & msg_set_ip       = *(sCHCP_SET_IP        *)&message;
-
+    sCHCP_HEADER        &header            = *(sCHCP_HEADER        *)&message;
+    sCHCP_PING          &msg_ping          = *(sCHCP_PING          *)&message;
+    sCHCP_PING_TO       &msg_ping_to       = *(sCHCP_PING_TO       *)&message;
+    sCHCP_ASSIGN_IP     &msg_assign_ip     = *(sCHCP_ASSIGN_IP     *)&message;
+    sCHCP_SET_IP        &msg_set_ip        = *(sCHCP_SET_IP        *)&message;
+    sCHCP_ASSIGN_LETTER &msg_assign_letter = *(sCHCP_ASSIGN_LETTER *)&message;
 
     // Create a MAC address object that CHCP uses to say "this is for everyone who can hear me"
     memset(&broadcast_mac, 0, sizeof broadcast_mac);
@@ -82,22 +81,22 @@ again:
             break;
 
         case CHCP_PING:
-            handle_chcp_ping(msg_ping);
+            handle_chcp_ping(msg_ping.ip);
             is_handled = true;
             break;
 
         case CHCP_PING_TO:
-            handle_chcp_ping_to(msg_ping_to);
+            handle_chcp_ping_to(msg_ping_to.ip, msg_ping_to.dest_port);
             is_handled = true;
             break;
 
         case CHCP_RESET:
-            handle_chcp_reset(msg_reset);
+            handle_chcp_reset();
             is_handled = true;
             break;
 
         case CHCP_ASSIGN_IP:
-            handle_chcp_assign_ip(msg_assign_ip);
+            handle_chcp_assign_ip(msg_assign_ip.ip);
             is_handled = true;
             break;
     }
@@ -109,13 +108,25 @@ again:
     switch (header.type)
     {
         case CHCP_SET_IP:
-            handle_chcp_set_ip(msg_set_ip);
+            handle_chcp_set_ip(msg_set_ip.ip);
+            break;
+
+        case CHCP_ASSIGN_LETTER:
+            handle_chcp_assign_letter(msg_assign_letter.letter);
+            break;
+
+        // This message is obsolete, so we won't handle it
+        case CHCP_TRASH_FIRMWARE:
+            break;
+
+        // We're not going to handle this message because we want
+        // to use the MAC address that is built into our hardware
+        case CHCP_SET_MAC:
             break;
 
         default:
             printf("Unknown CHCP command %i\n", header.type);
             break;
-
     }
 
     // And go wait for the next CHCP message to arrive
@@ -126,11 +137,11 @@ again:
 
 
 //=================================================================================================
-// handle_chcp_ping() - If have the IP specified in the message, send a herald in response
+// handle_chcp_ping() - If we have the IP specified in the message, send a herald in response
 //=================================================================================================
-void CCHCP::handle_chcp_ping(sCHCP_PING& msg)
+void CCHCP::handle_chcp_ping(sIP ip)
 {
-    if (msg.ip == broadcast_ip || msg.ip == Network.ip())
+    if (ip == broadcast_ip || ip == Network.ip())
     {
         Heralder.send();
     }
@@ -141,11 +152,11 @@ void CCHCP::handle_chcp_ping(sCHCP_PING& msg)
 //=================================================================================================
 // handle_chcp_ping_to() - Like chcp_ping, but sends the herald to a different port
 //=================================================================================================
-void CCHCP::handle_chcp_ping_to(sCHCP_PING_TO& msg)
+void CCHCP::handle_chcp_ping_to(sIP ip, int dest_port)
 {
-    if (msg.ip == broadcast_ip || msg.ip == Network.ip())
+    if (ip == broadcast_ip || ip == Network.ip())
     {
-        Heralder.send(msg.dest_port);
+        Heralder.send(dest_port);
     }
 }
 //=================================================================================================
@@ -154,7 +165,7 @@ void CCHCP::handle_chcp_ping_to(sCHCP_PING_TO& msg)
 //=================================================================================================
 // handle_chcp_reset() Tells all of the servers to close their connections
 //=================================================================================================
-void CCHCP::handle_chcp_reset(sCHCP_RESET& msg)
+void CCHCP::handle_chcp_reset()
 {
     reset_server_connections();
 }
@@ -165,13 +176,13 @@ void CCHCP::handle_chcp_reset(sCHCP_RESET& msg)
 //=================================================================================================
 // handle_chcp_assign_ip() - Changes our IP address
 //=================================================================================================
-void CCHCP::handle_chcp_assign_ip(sCHCP_ASSIGN_IP& msg)
+void CCHCP::handle_chcp_assign_ip(sIP ip)
 {
     // If this is already our IP address, do nothing
-    if (msg.ip == Network.ip()) return;
+    if (ip == Network.ip()) return;
 
     // Make this our new IP address
-    Network.set_ip_address(msg.ip);
+    Network.set_ip_address(ip);
 
     // Reset all of the client socket connections
     reset_server_connections();
@@ -185,17 +196,35 @@ void CCHCP::handle_chcp_assign_ip(sCHCP_ASSIGN_IP& msg)
 //=================================================================================================
 
 
+//=================================================================================================
+// handle_chcp_assign_letter() - Changes our letter (A, B, C, etc) in our herald
+//=================================================================================================
+void CCHCP::handle_chcp_assign_letter(char letter)
+{
+    // Keep track of the letter that we've been assigned
+    Instrument.letter = letter;
+
+    // Stuff the new letter into our herald
+    Heralder.build_herald();
+
+    // And send a single herald as an acknowledgement
+    Heralder.send();
+}
+//=================================================================================================
+
+
+
 
 //=================================================================================================
 // handle_chcp_set_ip() - Changes our IP address permanently
 //=================================================================================================
-void CCHCP::handle_chcp_set_ip(sCHCP_SET_IP& msg)
+void CCHCP::handle_chcp_set_ip(sIP ip)
 {
     // Tell the network interface to use this IP address
-    handle_chcp_assign_ip(*(sCHCP_ASSIGN_IP*)&msg);
+    handle_chcp_assign_ip(ip);
 
     // Save this to our settings
-    Config.set(SPEC_DEFAULT_IP, msg.ip.to_string());
+    Config.set(SPEC_DEFAULT_IP, ip.to_string());
 
     // And save our settings to disk/EEPROM
     Config.save();
