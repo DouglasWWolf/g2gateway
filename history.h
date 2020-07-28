@@ -29,6 +29,7 @@
  *     CTL request for comms stats
  *     CTL request to reset the firmware
  *     CTL request for "get busy sites"
+ *     CTL reset to reload and restart the Nios II
  *
  *
  *

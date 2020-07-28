@@ -72,7 +72,6 @@ protected:
     void         handle_ctl_reset();
     void         handle_ctl_set_serialnum();
     void         handle_ctl_get_serialnum();
-    void         handle_ctl_lookback_test();
     void         handle_ctl_echo();
 
     // -1 (for the gateway master port) or 0 thru 3 (for ordinary module connections)

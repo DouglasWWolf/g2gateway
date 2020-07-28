@@ -138,62 +138,24 @@ struct ctl_set_serialnum_rsp_t
     u8            status;
 };
 
-
-
-#if 0
-
-
-
-struct sResetReq
+struct ctl_reset_req_t
 {
-    sCtrlHeader header;
-    U8          flags;
-    U8          bitmap;
+    ctl_header_t  header;
+    u8            flags;
+    u8            bitmap;
 };
 
-struct sResetRsp
+struct ctl_reset_rsp_t
 {
-    sCtrlHeader header;
-    U8          status;
+    ctl_header_t  header;
+    u8            status;
 };
 
-struct sSetSerialNumReq
+struct ctl_echo_req_t
 {
-    sCtrlHeader header;
-    U32         serialNumber;  // Little Endian!!
+    ctl_header_t  header;
+    u8            data[256];
 };
-
-struct sSetSerialNumRsp
-{
-    sCtrlHeader header;
-    U8          status;
-};
-
-struct sGetSerialNumRsp
-{
-    sCtrlHeader header;
-    U32         serialNumber; // Little Endian!!
-};
-
-
-struct sLoopbackTestReq
-{
-    sCtrlHeader header;
-    U8          deviceBitmap;
-};
-
-struct sLoopbackTestRsp
-{
-    sCtrlHeader header;
-    U8          deviceBitmap;
-};
-
-struct sEcho
-{
-    sCtrlHeader header;
-    U8          data[256];
-};
-#endif
 
 #pragma pack(pop)
 //=================================================================================================
@@ -531,6 +493,13 @@ void CServer::dispatch_control_request()
             handle_ctl_set_serialnum();
             break;
 
+        case CTL_RESET:
+            handle_ctl_reset();
+            break;
+
+        case CTL_ECHO:
+            handle_ctl_echo();
+            break;
     }
 }
 //=================================================================================================
@@ -664,6 +633,32 @@ void CServer::handle_ctl_set_serialnum()
 //=================================================================================================
 
 
+//=================================================================================================
+// handle_ctl_reset() - Eventually this will have to reboot the Nios
+//=================================================================================================
+void CServer::handle_ctl_reset()
+{
+    ctl_reset_rsp_t  rsp;
+
+    rsp.status = 0;
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_ctl_echo() - Echos back exactly the same message we received
+//=================================================================================================
+void CServer::handle_ctl_echo()
+{
+    // Map our response over the original message we received
+    ctl_echo_req_t& rsp = *(ctl_echo_req_t*)&m_tcp_packet;
+
+    // And send the client back the message they sent us
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
 
 
 
