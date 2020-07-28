@@ -44,6 +44,9 @@ public:
     // Call this to find out if the server thread is initialized
     bool    is_initialized() {return m_is_initialized;}
 
+    // Call this to force the server to drop an incoming connection
+    void    reset_connection();
+
 protected:
 
     // This reads a GXIP message from the socket into m_tcp_packet

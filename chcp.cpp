@@ -1,6 +1,7 @@
 //=================================================================================================
 // chcp.cpp - Implements a CHCP listener
 //=================================================================================================
+#include <unistd.h>
 #include <string.h>
 #include "chcp.h"
 #include "typedefs.h"
@@ -13,6 +14,23 @@
 static sIP  broadcast_ip;
 static sMAC broadcast_mac;
 //=================================================================================================
+
+
+//=================================================================================================
+// reset_server_connections() - Causes all servers to drop any existing connection and go back
+//                              to listening for new ones
+//=================================================================================================
+static void reset_server_connections()
+{
+    // Ask all of the servers to drop any connection they happen to have open
+    for (int i=0; i<MAX_GXIP_SERVERS; ++i) Server[i].reset_connection();
+
+    // Give the servers a second to come back up
+    sleep(1);
+}
+//=================================================================================================
+
+
 
 //=================================================================================================
 // main() - Sits in a loop, listening for and handling incoming CHCP messages
@@ -27,6 +45,7 @@ void CCHCP::main(void* p1, void* p2, void* p3)
     sCHCP_HEADER        & header           = *(sCHCP_HEADER        *)&message;
     sCHCP_PING          & msg_ping         = *(sCHCP_PING          *)&message;
     sCHCP_PING_TO       & msg_ping_to      = *(sCHCP_PING_TO       *)&message;
+    sCHCP_RESET         & msg_reset        = *(sCHCP_RESET         *)&message;
 
     // Create a MAC address object that CHCP uses to say "this is for everyone who can hear me"
     memset(&broadcast_mac, 0, sizeof broadcast_mac);
@@ -62,6 +81,10 @@ again:
         case CHCP_PING_TO:
             handle_chcp_ping_to(msg_ping_to);
             break;
+
+        case CHCP_RESET:
+            handle_chcp_reset(msg_reset);
+            break;
     }
 
     // And go wait for the next CHCP message to arrive
@@ -96,6 +119,15 @@ void CCHCP::handle_chcp_ping_to(sCHCP_PING_TO& msg)
 }
 //=================================================================================================
 
+
+//=================================================================================================
+// handle_chcp_reset() Tells all of the servers to close their connections
+//=================================================================================================
+void CCHCP::handle_chcp_reset(sCHCP_RESET& msg)
+{
+    reset_server_connections();
+}
+//=================================================================================================
 
 
 

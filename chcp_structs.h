@@ -88,6 +88,12 @@ struct sCHCP_PING_TO
     u16be dest_port;
 };
 
+struct sCHCP_RESET
+{
+    u8    type;
+    sMAC  mac;
+};
+
 
 #if 0
 

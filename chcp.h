@@ -15,4 +15,5 @@ public:
     // CHCP message handlers
     void handle_chcp_ping   (sCHCP_PING   & msg);
     void handle_chcp_ping_to(sCHCP_PING_TO& msg);
+    void handle_chcp_reset  (sCHCP_RESET  & msg);
 };
