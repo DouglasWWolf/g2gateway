@@ -101,23 +101,24 @@ struct sCHCP_ASSIGN_IP
     sIP  ip;
 };
 
+struct sCHCP_SET_IP
+{
+    u8   type;
+    sMAC mac;
+    sIP  ip;
+};
+
+
+struct sCHCP_ASSIGN_LETTER
+{
+    u8   type;
+    sMAC MAC;
+    u8   letter;
+};
+
 
 #if 0
 
-struct sCHCP_ASSIGN_IP
-{
-    U8   type;
-    sMAC MAC;
-    sIP  IP;
-};
-
-
-struct sCHCP_SET_IP
-{
-    U8   type;
-    sMAC MAC;
-    sIP  IP;
-};
 
 struct sCHCP_SET_MAC
 {
@@ -140,11 +141,6 @@ struct sCHCP_TRASH_FIRMWARE
     U32BE password;
 };
 
-struct sCHCP_RESET
-{
-    U8    type;
-    sMAC  MAC;
-};
 
 struct sCHCP_DEVICE_BCAST
 {

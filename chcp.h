@@ -17,4 +17,5 @@ public:
     void handle_chcp_ping_to  (sCHCP_PING_TO   & msg);
     void handle_chcp_reset    (sCHCP_RESET     & msg);
     void handle_chcp_assign_ip(sCHCP_ASSIGN_IP & msg);
+    void handle_chcp_set_ip   (sCHCP_SET_IP    & msg);
 };

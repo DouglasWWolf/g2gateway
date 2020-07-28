@@ -14,10 +14,10 @@ public:
      CUpdSpec(const char* filename, int eeprom_size = 0, const char* header = "");
 
      // Read in the spec-file from a file
-     bool   read_file();
+     bool   load();
 
      // Save the specfile to a file
-     bool   save_file();
+     bool   save();
 
      // Fetch the name of the file
      const char* filename() {return m_filename;}

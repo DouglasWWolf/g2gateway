@@ -14,4 +14,6 @@
  *   Need the IP address to start static
  *   Need the root filesystem to start mounted r/o
  *
+ *
+ *   Added code to handle CHCP device broadcast
  */

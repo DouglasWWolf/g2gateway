@@ -62,7 +62,7 @@ void init()
 #endif
 
     // Read in the configuration file
-    if (!Config.read_file())
+    if (!Config.load())
     {
         printf("Missing configuration file %s\n", Config.filename());
         exit(1);

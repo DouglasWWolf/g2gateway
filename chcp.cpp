@@ -7,6 +7,7 @@
 #include "typedefs.h"
 #include "udpsocket.h"
 #include "globals.h"
+#include "common.h"
 
 //=================================================================================================
 // This IP and MAC address are all zeros
@@ -47,6 +48,8 @@ void CCHCP::main(void* p1, void* p2, void* p3)
     sCHCP_PING_TO       & msg_ping_to      = *(sCHCP_PING_TO       *)&message;
     sCHCP_RESET         & msg_reset        = *(sCHCP_RESET         *)&message;
     sCHCP_ASSIGN_IP     & msg_assign_ip    = *(sCHCP_ASSIGN_IP     *)&message;
+    sCHCP_SET_IP        & msg_set_ip       = *(sCHCP_SET_IP        *)&message;
+
 
     // Create a MAC address object that CHCP uses to say "this is for everyone who can hear me"
     memset(&broadcast_mac, 0, sizeof broadcast_mac);
@@ -62,34 +65,57 @@ again:
     // If this CHCP message isn't intended for us, ignore it
     if (header.MAC != broadcast_mac && header.MAC != Network.mac()) goto again;
 
+    // We've not yet handled this CHCP message
+    bool is_handled = false;
+
     // Process CHCP messages that both the DLM and the gateway can handle
     switch (header.type)
     {
         case CHCP_HERALD_ON:
             Heralder.start();
-            goto again;
+            is_handled = true;
             break;
 
         case CHCP_HERALD_OFF:
             Heralder.stop();
-            goto again;
+            is_handled = true;
             break;
 
         case CHCP_PING:
             handle_chcp_ping(msg_ping);
+            is_handled = true;
             break;
 
         case CHCP_PING_TO:
             handle_chcp_ping_to(msg_ping_to);
+            is_handled = true;
             break;
 
         case CHCP_RESET:
             handle_chcp_reset(msg_reset);
+            is_handled = true;
             break;
 
         case CHCP_ASSIGN_IP:
             handle_chcp_assign_ip(msg_assign_ip);
+            is_handled = true;
             break;
+    }
+
+    // If we've handled this CHCP message, go wait for the next one
+    if (is_handled) goto again;
+
+    // Process CHCP messages that only the gateway (and not the DLM) can handle
+    switch (header.type)
+    {
+        case CHCP_SET_IP:
+            handle_chcp_set_ip(msg_set_ip);
+            break;
+
+        default:
+            printf("Unknown CHCP command %i\n", header.type);
+            break;
+
     }
 
     // And go wait for the next CHCP message to arrive
@@ -160,6 +186,21 @@ void CCHCP::handle_chcp_assign_ip(sCHCP_ASSIGN_IP& msg)
 
 
 
+//=================================================================================================
+// handle_chcp_set_ip() - Changes our IP address permanently
+//=================================================================================================
+void CCHCP::handle_chcp_set_ip(sCHCP_SET_IP& msg)
+{
+    // Tell the network interface to use this IP address
+    handle_chcp_assign_ip(*(sCHCP_ASSIGN_IP*)&msg);
+
+    // Save this to our settings
+    Config.set(SPEC_DEFAULT_IP, msg.ip.to_string());
+
+    // And save our settings to disk/EEPROM
+    Config.save();
+}
+//=================================================================================================
 
 
 #if 0

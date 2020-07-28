@@ -32,9 +32,9 @@ CUpdSpec::CUpdSpec(const char* filename, int eeprom_size, const char* header)
 
 
 //=================================================================================================
-// read_file() - Reads a spec-file from a file
+// load() - Reads a spec-file from a file
 //=================================================================================================
-bool CUpdSpec::read_file()
+bool CUpdSpec::load()
 {
     // Throw away an existing spec-file data we have in memory
     m_lines.clear();
@@ -400,9 +400,9 @@ void CUpdSpec::write_to_buffer(char* buffer)
 
 
 //=================================================================================================
-// save_file() - Saves the file to disk
+// save() - Saves the file to disk/EEPROM
 //=================================================================================================
-bool CUpdSpec::save_file()
+bool CUpdSpec::save()
 {
     // Figure out how big of a buffer we'll need
     int file_size = buffer_size();
