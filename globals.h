@@ -30,3 +30,6 @@ extern CHeralder    Heralder;
 extern instrument_t Instrument;
 extern CCHCP        CHCP;
 extern CServer      Server[MAX_GXIP_SERVERS];
+
+
+int get_live_sites();

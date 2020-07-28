@@ -3,14 +3,183 @@
 //=================================================================================================
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <string.h>
 #include "server.h"
 #include "typedefs.h"
+#include "globals.h"
 
 //=================================================================================================
 // These are the commands that can be sent to the server via the special command pipe
 //=================================================================================================
 #define SPECIAL_CLOSE 1
 //=================================================================================================
+
+
+//=================================================================================================
+// The version number of the GXIP protocol that we use to communicate with the TCP client
+//=================================================================================================
+#define PROTOCOL_MAJOR  1
+#define PROTOCOL_MINOR  1
+//=================================================================================================
+
+
+
+//=================================================================================================
+// When a packet comes in from he TCP client, it will contain one of these packet types
+//=================================================================================================
+#define PRO_PKT     0
+#define CMD_PKT     1
+#define REQ_PKT     2
+#define RSP_PKT     3
+#define HSK_PKT     4
+#define MRM_PKT     5
+#define CTL_PKT     6
+#define CMD_E_PKT   9
+#define REQ_E_PKT   10
+#define RSP_E_PKT   11
+//=================================================================================================
+
+
+
+//=================================================================================================
+// Message ID for gateway control requests
+//=================================================================================================
+#define CTL_GET_VERSION       1
+#define CTL_GET_COM_STATS     2
+#define CTL_GET_LIVE_SITES    3
+#define CTL_GET_MAC           4
+#define CTL_RESET             5
+#define CTL_SET_SERIALNUM     6
+#define CTL_GET_SERIALNUM     7
+#define CTL_LOOPBACK_TEST     8
+#define CTL_GET_BUSY_SITES    9
+#define CTL_ECHO             10
+#define CTL_GET_DLM_VERSION  11
+//=================================================================================================
+
+
+
+
+
+//=================================================================================================
+//                    Structures for the various gateway control messages
+//=================================================================================================
+#pragma pack(push, 1)
+
+struct ctl_header_t
+{
+    u16be   msg_length;
+    u8      msg_type;
+    u8      msg_id;
+};
+
+struct ctl_get_version_rsp_t
+{
+    ctl_header_t  header;
+    u8            major;
+    u8            minor;
+    u8            build;
+};
+
+struct ctl_get_dlm_version_rsp_t
+{
+    ctl_header_t  header;
+    u8            major;
+    u8            minor;
+    u8            build;
+};
+
+struct ctl_get_com_stats_rsp_t
+{
+    ctl_header_t  header;
+    u8            naks_in;
+    u8            naks_out;
+    u8            cans_in;
+    u8            cans_out;
+};
+
+struct ctl_get_live_sites_rsp_t
+{
+    ctl_header_t  header;
+    u8            live_site_map;
+};
+
+
+struct ctl_get_busy_sites_rsp_t
+{
+    ctl_header_t  header;
+    u8            busy_site_map;
+};
+
+struct ctl_get_mac_rsp_t
+{
+    ctl_header_t  header;
+    u8            id_type;
+    sMAC          mac;
+    u8            filler[4];
+};
+
+
+#if 0
+
+
+
+struct sResetReq
+{
+    sCtrlHeader header;
+    U8          flags;
+    U8          bitmap;
+};
+
+struct sResetRsp
+{
+    sCtrlHeader header;
+    U8          status;
+};
+
+struct sSetSerialNumReq
+{
+    sCtrlHeader header;
+    U32         serialNumber;  // Little Endian!!
+};
+
+struct sSetSerialNumRsp
+{
+    sCtrlHeader header;
+    U8          status;
+};
+
+struct sGetSerialNumRsp
+{
+    sCtrlHeader header;
+    U32         serialNumber; // Little Endian!!
+};
+
+
+struct sLoopbackTestReq
+{
+    sCtrlHeader header;
+    U8          deviceBitmap;
+};
+
+struct sLoopbackTestRsp
+{
+    sCtrlHeader header;
+    U8          deviceBitmap;
+};
+
+struct sEcho
+{
+    sCtrlHeader header;
+    U8          data[256];
+};
+#endif
+
+#pragma pack(pop)
+//=================================================================================================
+
+
+
 
 //=================================================================================================
 // bytes_availabe() - Returns the number of bytes available to be read on a file-descriptor
@@ -98,7 +267,7 @@ void CServer::set_slot(int slot)
     m_slot = slot;
 
     // Determine which TCP port this server will be listening on
-    m_tcp_port = (slot == -1) ? 1066 :m_slot + 921;
+    m_tcp_port = (slot == -1) ? 1066 : m_slot + 922;
 }
 //=================================================================================================
 
@@ -116,11 +285,6 @@ void CServer::main(void* p1, void* p2, void* p3)
 
     // Get a convenient name for our side of this pipe
     int special_fd = m_special_pipe[0];
-
-    // Map a message-header structure onto our message buffer
-    u16be& msg_length = *(u16be*)&m_tcp_packet;
-    u8   & msg_type   = *(u8   *)&m_tcp_packet.type;
-    u8   & msg_id     = *(u8   *)&m_tcp_packet.payload[0];
 
     // Tell the outside world that we are initialized
     m_is_initialized = true;
@@ -163,7 +327,7 @@ wait_for_connect:
     if (max_fd < sd        ) max_fd = sd;
     if (max_fd < special_fd) max_fd = special_fd;
 
-WaitForData:
+wait_for_data:
 
     // We want to wake up if any data appears on the socket or on the pipe
     FD_ZERO(&rfds);
@@ -207,34 +371,25 @@ WaitForData:
             goto wait_for_connect;
         }
 
-#if 0
-        // Decide what to do with the packet
-        switch (msg_type)
+        switch(m_tcp_packet.type)
         {
             case PRO_PKT:
-                protocolRequest();
-                goto WaitForData;
+                handle_protocol_request();
                 break;
 
             case CTL_PKT:
-                HandleControlRequest(msg_id);
-                goto WaitForData;
+                dispatch_control_request();
                 break;
 
-            case CMD_PKT:
-            case REQ_PKT:
-            case CMD_E_PKT:
-            case REQ_E_PKT:
-                HandleCmdReqMsg();
-                goto WaitForData;
+            default:
+                printf("Rcvd message type %u: ID = %u, \n", m_tcp_packet.type, m_tcp_packet.payload[0]);
+                break;
         }
-#endif
-        // If we get an unknown message type, display it
-        printf("Rcvd message type %u: ID = %u, Length = %u\n",
-                msg_type, msg_id, (unsigned)msg_length);
     }
-    // Go back and wait for more data
-    goto WaitForData;
+
+    // And go back and wait for the next incoming message
+    goto wait_for_data;
+
 }
 //=================================================================================================
 
@@ -250,185 +405,199 @@ void CServer::reset_connection()
 //=================================================================================================
 
 
-
-
-#if 0
-//=============================================================================
-// Main() - This is the routine that begins executing when the thread spawns
-//=============================================================================
-void CServer::Main(void* P1, void* P2, void *P3)
+//=================================================================================================
+// handle_protocol_request() - Tell the Host what version of the GXIP protocol we are speaking
+//
+// A "protocol response" looks like this:
+//
+// Offset   0   =   High Byte of packet length
+//          1   =   Low Byte of packet length
+//          2   =   PRO_PKT (which should ALWAYS be zero!)
+//          3   =   Major version of protocol
+//          4   =   Minor version of protocol
+//
+// The format of a protocol response must NEVER change.  Ever, ever, ever!
+// This way, even if our normal protocol changes, the Host will a pre-determined method of
+// finding out what protocol we are speaking.
+//=================================================================================================
+void CServer::handle_protocol_request()
 {
-    fd_set  rfds;
-    char    special_cmd;
+    u8 packet[5];
 
-    // We're not yet connected to a GX
-    m_gx_connected = false;
+    // Fill in the two byte packet length
+    packet[0] = 0;
+    packet[1] = sizeof packet;
 
-    // Initialize the transaction ID to a known value
-    m_transID = 0;
+    // The returned "Packet Type" will always be "PRO_PKT"
+    packet[2] = PRO_PKT;
 
-    // So far, there have been no unusual handshakes sent or received
-    m_CANs_in = m_CANs_out = m_NAKs_in = m_NAKs_out = 0;
+    // Fill in the two byte protocol version
+    packet[3] = PROTOCOL_MAJOR;
+    packet[4] = PROTOCOL_MINOR;
 
-    // Initialize the HCM client
-    m_HCM.Initialize(m_slot, CC_SRC_GATEWAY);
-
-    // Find the name of the serial-device associated with this lot
-    const char* device = tty_name[m_slot];
-
-    // If this socket should talk to one of the GeneXpert devices...
-    if (m_slot >= 0)
-    {
-        // Open a connection to the serial port the GX is connected to
-        m_gx_connected = m_SP.Open(device, 57600);
-
-        // And complain if the serial port isn't accessable
-        if (!m_gx_connected) printf("Failed to open \"%s\"\n", device);
-
-
-        // The serial port listener sends us data from the serial port on this pipe
-        pipe(m_sp_read_pipe);
-
-        // Other threads send us messages by writing to this pipe
-        pipe(m_special_pipe);
-
-        // Start up the serial-port reader
-        m_SPReader.Spawn
-        (
-            (void*) m_slot,
-            (void*) m_SP.GetFD(),
-            (void*) m_sp_read_pipe[1]
-        );
-
-        // Listen for events that should be forwarded to the GX module
-        m_EventReader.Spawn((void*)m_slot);
-    }
-
-    // Get a convenient name for our side of this pipe
-    int specialFD = m_special_pipe[0];
-
-    // Map a message-header structure onto our message buffer
-    U16BE& msg_length = *(U16BE*)&m_tcp_packet;
-    U8   & msg_type   = *(U8   *)&m_tcp_packet.type;
-    U8   & msg_id     = *(U8   *)&m_tcp_packet.Data[0];
-
-    // Tell the outside world that we are initialized;
-    m_bInitialized = true;
-
-WaitForConnect:
-
-    // Tell the world what's up
-    printf("Waiting for connection on port %i\n", m_tcp_port);
-
-    // There is not yet a client connected to our socket
-    m_bConnected = false;
-
-    // Create the server socket
-    if (!m_socket.CreateServer(m_tcp_port))
-    {
-        printf("FAILED TO CREATE SERVER ON PORT %i\n", m_tcp_port);
-    }
-
-    // Wait for a connection from the outside world
-    if (!m_socket.Accept())
-    {
-        printf("FAILED TO ACCEPT CONNECTIONS ON PORT %i\n", m_tcp_port);
-    }
-
-    // There is now a client connected to our socket
-    m_bConnected = true;
-
-    // Display a message to the console
-    printf("Client connected to Port %i\n", m_tcp_port);
-
-    // Get rid of any spurious bytes that are sitting in the special pipe
-    DrainFD(specialFD);
-
-    // We want all socket data transmitted immediately
-    m_socket.SetNagling(false);
-
-    // Find out what the file descriptor of the socket is
-    int sd = m_socket.GetFD();
-
-    // Figure out what the largest file descriptor is
-    int max_fd = 0;
-    if (max_fd < sd       ) max_fd = sd;
-    if (max_fd < specialFD) max_fd = specialFD;
-
-WaitForData:
-
-    // We want to wake up if any data appears on the socket or on the pipe
-    FD_ZERO(&rfds);
-    FD_SET(sd,        &rfds);
-    FD_SET(specialFD, &rfds);
-
-    // Wait for data to arrive on one of our file descriptors
-    select(max_fd+1, &rfds, NULL, NULL, NULL);
-
-    // If a special command has arrived from another thread...
-    if (FD_ISSET(specialFD, &rfds))
-    {
-        // Find out what the command is
-        read(specialFD, &special_cmd, 1);
-
-        if (special_cmd == SPECIAL_CLOSE)
-        {
-            // Close the data socket
-            Handle_SpecialClose();
-
-            // And go wait for another connection
-            goto WaitForConnect;
-        }
-    }
-
-    // If data arrived on the socket...
-    if (FD_ISSET(sd, &rfds))
-    {
-        // Read the first two bytes of the message, it's the msg length
-        if (read(sd, &m_tcp_packet, 2) < 2)
-        {
-            m_socket.Close();
-            printf("Port %i closed by client\n", m_tcp_port);
-            goto WaitForConnect;
-        }
-
-        // Read in the rest of the message
-        read(sd, &m_tcp_packet.type, msg_length - 2);
-
-        // Decide what to do with the packet
-        switch (msg_type)
-        {
-            case PRO_PKT:
-                protocolRequest();
-                goto WaitForData;
-                break;
-
-            case CTL_PKT:
-                HandleControlRequest(msg_id);
-                goto WaitForData;
-                break;
-
-            case CMD_PKT:
-            case REQ_PKT:
-            case CMD_E_PKT:
-            case REQ_E_PKT:
-                HandleCmdReqMsg();
-                goto WaitForData;
-
-            case CAM_PKT:
-                HandleCameraRequest(msg_id, msg_length - 4);
-                goto WaitForData;
-        }
-
-        // If we get an unknown message type, display it
-        printf("Rcvd message type %u: ID = %u, Length = %u\n",
-                msg_type, msg_id, (unsigned)msg_length);
-    }
-
-    // Go back and wait for more data
-    goto WaitForData;
-
+    // Send the packet to the host
+    m_socket.send(packet, sizeof(packet));
 }
-//=============================================================================
+//=================================================================================================
 
-#endif
+
+
+//=================================================================================================
+// control_response() - Sends a gateway-control response message back to the client
+//
+// Passed:  ptr    = Pointer to the response message to be sent
+//          length = Length of the response message in bytes
+//=================================================================================================
+void CServer::control_response(void* ptr, int length)
+{
+    // Map a message header onto the message buffer
+    ctl_header_t& header = *(ctl_header_t*)ptr;
+
+    // Store the length of the entire message
+    header.msg_length = length;
+
+    // This is a gateway-control response packet
+    header.msg_type = RSP_PKT;
+
+    // Fill in ID that tells the client what type of msg we're responding to
+    header.msg_id = m_tcp_packet.payload[0];
+
+    // Send it back to the client
+    m_socket.send(ptr, length);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// dispatch_control_request() - Examines the control request message ID and dispatches the
+//                              appropriate handler
+//=================================================================================================
+void CServer::dispatch_control_request()
+{
+    // Find out which control request message is being sent
+    int msg_id = m_tcp_packet.payload[0];
+
+    switch(msg_id)
+    {
+        case CTL_GET_VERSION:
+            handle_ctl_get_version();
+            break;
+
+        case CTL_GET_DLM_VERSION:
+            handle_ctl_get_dlm_version();
+            break;
+
+        case CTL_GET_COM_STATS:
+            handle_ctl_get_com_stats();
+            break;
+
+        case CTL_GET_LIVE_SITES:
+            handle_ctl_get_live_sites();
+            break;
+
+        case CTL_GET_BUSY_SITES:
+            handle_ctl_get_busy_sites();
+            break;
+
+        case CTL_GET_MAC:
+            handle_ctl_get_mac();
+            break;
+
+    }
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_get_ctl_version() - Responds with the version of this software
+//=================================================================================================
+void CServer::handle_ctl_get_version()
+{
+    ctl_get_version_rsp_t   rsp;
+
+    rsp.major = Instrument.fw_major;
+    rsp.minor = Instrument.fw_minor;
+    rsp.build = Instrument.fw_build;
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_ctl_get_dlm_version() - Responds with the version of the (non-existent) download manager
+//
+// Note: Since we don't have a download manager, just return all zeros
+//=================================================================================================
+void CServer::handle_ctl_get_dlm_version()
+{
+    ctl_get_dlm_version_rsp_t   rsp;
+
+    memset(&rsp, 0, sizeof rsp);
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_ctl_get_com_stats() - Responds with the communication statistics
+//
+// Note: Since we aren't supporting this message at this time, just return all zeros
+//=================================================================================================
+void CServer::handle_ctl_get_com_stats()
+{
+    ctl_get_com_stats_rsp_t   rsp;
+
+    memset(&rsp, 0, sizeof rsp);
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_ctl_get_live_sites() - Responds with a bitmap of which sites are connected to a GX module
+//=================================================================================================
+void CServer::handle_ctl_get_live_sites()
+{
+    ctl_get_live_sites_rsp_t   rsp;
+
+    rsp.live_site_map = get_live_sites();
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
+// handle_ctl_get_busy_sites() - Responds with a bitmap of which sites are busy
+//=================================================================================================
+void CServer::handle_ctl_get_busy_sites()
+{
+    ctl_get_busy_sites_rsp_t   rsp;
+
+    rsp.busy_site_map = 0;
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_ctl_get_mac() - Responds with the MAC address of our system
+//=================================================================================================
+void CServer::handle_ctl_get_mac()
+{
+    ctl_get_mac_rsp_t   rsp;
+
+    memset(&rsp, 0, sizeof rsp);
+    rsp.id_type = 1;
+    rsp.mac = Network.mac();
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+

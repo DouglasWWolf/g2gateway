@@ -30,3 +30,11 @@ CServer      Server[MAX_GXIP_SERVERS];
 // This holds information about this instrument such as IP address, MAC, serial number, etc
 instrument_t Instrument;
 
+
+//=================================================================================================
+// get_live_sites() - In a regular gateway, this would be a bitmap of which slots have GX modules
+//                    attached to them.   Since we have a dedicated module, just say that only the
+//                    first slot has a module in it
+//=================================================================================================
+int get_live_sites() {return 1;}
+//=================================================================================================

@@ -16,7 +16,7 @@ void parse_firmware_version()
 {
     int version = VERSION;
 
-    Instrument.fw_major = version / 1000; version %= 1000;
+    Instrument.fw_major = version / 10000; version %= 10000;
     Instrument.fw_minor = version / 100 ; version %= 100;
     Instrument.fw_build = version;
 }

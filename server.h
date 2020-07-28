@@ -25,6 +25,7 @@ struct tcp_packet_t
 //=================================================================================================
 
 
+
 //=================================================================================================
 // CServer - Each CServer object manages one TCP connection
 //=================================================================================================
@@ -51,6 +52,28 @@ protected:
 
     // This reads a GXIP message from the socket into m_tcp_packet
     bool         read_gxip_msg_from_socket(int fd);
+
+    // Handler for when the client asks what version of the GXIP protocol we're using
+    void         handle_protocol_request();
+
+    // Dispatches the appropriate handler for a given control request
+    void         dispatch_control_request();
+
+    // This is called to to respond to a control request
+    void         control_response(void* ptr, int length);
+
+    // Handlers for individual control requests
+    void         handle_ctl_get_version();
+    void         handle_ctl_get_dlm_version();
+    void         handle_ctl_get_com_stats();
+    void         handle_ctl_get_live_sites();
+    void         handle_ctl_get_busy_sites();
+    void         handle_ctl_get_mac();
+    void         handle_ctl_reset();
+    void         handle_ctl_set_serialnum();
+    void         handle_ctl_get_serialnum();
+    void         handle_ctl_lookback_test();
+    void         handle_ctl_echo();
 
     // -1 (for the gateway master port) or 0 thru 3 (for ordinary module connections)
     int          m_slot;
