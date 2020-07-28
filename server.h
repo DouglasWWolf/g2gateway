@@ -4,27 +4,7 @@
 #pragma once
 #include "cthread.h"
 #include "netsock.h"
-
-
-//=================================================================================================
-// This is the maximum number of bytes in the data section of a GXPPP frame.
-//=================================================================================================
-#define PACKET_PAYLOAD_SIZE   2048
-//=================================================================================================
-
-
-//=================================================================================================
-// This is the structure of a messsage that comes from a TCP socket
-//=================================================================================================
-struct tcp_packet_t
-{
-    unsigned char length_h, length_l;
-    unsigned char type;
-    unsigned char payload[PACKET_PAYLOAD_SIZE];
-};
-//=================================================================================================
-
-
+#include "gxip_struct.h"
 
 //=================================================================================================
 // CServer - Each CServer object manages one TCP connection
@@ -51,49 +31,51 @@ public:
 protected:
 
     // This reads a GXIP message from the socket into m_tcp_packet
-    bool         read_gxip_msg_from_socket(int fd);
+    bool          read_gxip_msg_from_socket(int fd);
 
     // Handler for when the client asks what version of the GXIP protocol we're using
-    void         handle_protocol_request();
+    void          handle_protocol_request();
 
     // Dispatches the appropriate handler for a given control request
-    void         dispatch_control_request();
+    void          dispatch_control_request();
+
+    // Dispatches a GXIP message to the firmware running in the Nios-II
+    void          dispatch_to_firmware();
 
     // This is called to to respond to a control request
-    void         control_response(void* ptr, int length);
+    void          control_response(void* ptr, int length);
 
     // Handlers for individual control requests
-    void         handle_ctl_get_version();
-    void         handle_ctl_get_dlm_version();
-    void         handle_ctl_get_com_stats();
-    void         handle_ctl_get_live_sites();
-    void         handle_ctl_get_busy_sites();
-    void         handle_ctl_get_mac();
-    void         handle_ctl_reset();
-    void         handle_ctl_set_serialnum();
-    void         handle_ctl_get_serialnum();
-    void         handle_ctl_echo();
+    void          handle_ctl_get_version();
+    void          handle_ctl_get_dlm_version();
+    void          handle_ctl_get_com_stats();
+    void          handle_ctl_get_live_sites();
+    void          handle_ctl_get_busy_sites();
+    void          handle_ctl_get_mac();
+    void          handle_ctl_reset();
+    void          handle_ctl_set_serialnum();
+    void          handle_ctl_get_serialnum();
+    void          handle_ctl_echo();
 
     // -1 (for the gateway master port) or 0 thru 3 (for ordinary module connections)
-    int          m_slot;
+    int           m_slot;
 
     // This is the TCP port we're listening to
-    int          m_tcp_port;
+    int           m_tcp_port;
 
     // Other threads can send us messages by writing to this pipe
-    int          m_special_pipe[2];
+    int           m_special_pipe[2];
 
     // The main thread will check this after we spawn to see if we're ready to go
-    bool         m_is_initialized;
+    bool          m_is_initialized;
 
     // This will be true when we think there is a client connected to us
-    bool         m_is_connected;
+    bool          m_is_connected;
 
     // This is the server socket that people connect to us on
-    CNetSock     m_socket;
-
+    CNetSock      m_socket;
 
     // This is a message from the socket
-    tcp_packet_t m_tcp_packet;
+    gxip_packet_t m_gxip_packet;
 };
 //=================================================================================================

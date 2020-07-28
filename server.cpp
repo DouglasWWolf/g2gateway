@@ -210,14 +210,14 @@ CServer::CServer()
 //=================================================================================================
 bool CServer::read_gxip_msg_from_socket(int sd)
 {
-    char* remaining_packet = ((char*)&m_tcp_packet)+2;
-    int   remaining_size   = sizeof(m_tcp_packet) - 2;
+    char* remaining_packet = ((char*)&m_gxip_packet)+2;
+    int   remaining_size   = sizeof(m_gxip_packet) - 2;
 
     // Read the first two bytes of the message, it's the msg length
-    if (read(sd, &m_tcp_packet, 2) < 2) return false;
+    if (read(sd, &m_gxip_packet, 2) < 2) return false;
 
     // Find out how long entire message is (including the two length bytes)
-    int msg_length = (m_tcp_packet.length_h << 8) | m_tcp_packet.length_l;
+    int msg_length = (m_gxip_packet.length_h << 8) | m_gxip_packet.length_l;
 
     // This is how many more bytes we should find in this message
     int bytes_expected = msg_length - 2;
@@ -353,7 +353,7 @@ wait_for_data:
         }
 
         // And dispatch this GXIP message to the appropriate handler
-        switch(m_tcp_packet.type)
+        switch(m_gxip_packet.type)
         {
             case PRO_PKT:
                 handle_protocol_request();
@@ -363,8 +363,15 @@ wait_for_data:
                 dispatch_control_request();
                 break;
 
+            case CMD_PKT:
+            case REQ_PKT:
+            case CMD_E_PKT:
+            case REQ_E_PKT:
+                dispatch_to_firmware();
+                break;
+
             default:
-                printf("Rcvd message type %u: ID = %u, \n", m_tcp_packet.type, m_tcp_packet.payload[0]);
+                printf("Rcvd message type %u: ID = %u, \n", m_gxip_packet.type, m_gxip_packet.payload[0]);
                 break;
         }
     }
@@ -442,7 +449,7 @@ void CServer::control_response(void* ptr, int length)
     header.msg_type = RSP_PKT;
 
     // Fill in ID that tells the client what type of msg we're responding to
-    header.msg_id = m_tcp_packet.payload[0];
+    header.msg_id = m_gxip_packet.payload[0];
 
     // Send it back to the client
     m_socket.send(ptr, length);
@@ -457,7 +464,7 @@ void CServer::control_response(void* ptr, int length)
 void CServer::dispatch_control_request()
 {
     // Find out which control request message is being sent
-    int msg_id = m_tcp_packet.payload[0];
+    int msg_id = m_gxip_packet.payload[0];
 
     switch(msg_id)
     {
@@ -620,7 +627,7 @@ void CServer::handle_ctl_get_serialnum()
 //=================================================================================================
 void CServer::handle_ctl_set_serialnum()
 {
-    ctl_set_serialnum_req_t& req = *(ctl_set_serialnum_req_t*)&m_tcp_packet;
+    ctl_set_serialnum_req_t& req = *(ctl_set_serialnum_req_t*)&m_gxip_packet;
     ctl_set_serialnum_rsp_t  rsp;
 
     Config.set(SPEC_INSTRUMENT_SN, to_string("%u", req.serialnum));
@@ -653,10 +660,22 @@ void CServer::handle_ctl_reset()
 void CServer::handle_ctl_echo()
 {
     // Map our response over the original message we received
-    ctl_echo_req_t& rsp = *(ctl_echo_req_t*)&m_tcp_packet;
+    ctl_echo_req_t& rsp = *(ctl_echo_req_t*)&m_gxip_packet;
 
     // And send the client back the message they sent us
     control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// dispatch_to_firmware() - Sends this messsage to the firmware and does the appropriate
+//                          handshaking
+//=================================================================================================
+void CServer::dispatch_to_firmware()
+{
+
+
 }
 //=================================================================================================
 
