@@ -126,6 +126,18 @@ struct ctl_get_serialnum_rsp_t
     u32           serialnum;  // This needs to be little endian!
 };
 
+struct ctl_set_serialnum_req_t
+{
+    ctl_header_t  header;
+    u32           serialnum;  // This needs to be little endian!
+};
+
+struct ctl_set_serialnum_rsp_t
+{
+    ctl_header_t  header;
+    u8            status;
+};
+
 
 
 #if 0
@@ -511,6 +523,14 @@ void CServer::dispatch_control_request()
             handle_ctl_get_mac();
             break;
 
+        case CTL_GET_SERIALNUM:
+            handle_ctl_get_serialnum();
+            break;
+
+        case CTL_SET_SERIALNUM:
+            handle_ctl_set_serialnum();
+            break;
+
     }
 }
 //=================================================================================================
@@ -624,5 +644,26 @@ void CServer::handle_ctl_get_serialnum()
     control_response(&rsp, sizeof rsp);
 }
 //=================================================================================================
+
+
+//=================================================================================================
+// handle_ctl_set_serialnum() - Sets and saves the serial number of this instrument
+//=================================================================================================
+void CServer::handle_ctl_set_serialnum()
+{
+    ctl_set_serialnum_req_t& req = *(ctl_set_serialnum_req_t*)&m_tcp_packet;
+    ctl_set_serialnum_rsp_t  rsp;
+
+    Config.set(SPEC_INSTRUMENT_SN, to_string("%u", req.serialnum));
+    Config.save();
+
+    rsp.status = 1;
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+
 
 
