@@ -7,6 +7,7 @@
 #include "server.h"
 #include "typedefs.h"
 #include "globals.h"
+#include "common.h"
 
 //=================================================================================================
 // These are the commands that can be sent to the server via the special command pipe
@@ -118,6 +119,13 @@ struct ctl_get_mac_rsp_t
     sMAC          mac;
     u8            filler[4];
 };
+
+struct ctl_get_serialnum_rsp_t
+{
+    ctl_header_t  header;
+    u32           serialnum;  // This needs to be little endian!
+};
+
 
 
 #if 0
@@ -595,6 +603,23 @@ void CServer::handle_ctl_get_mac()
     memset(&rsp, 0, sizeof rsp);
     rsp.id_type = 1;
     rsp.mac = Network.mac();
+
+    control_response(&rsp, sizeof rsp);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_ctl_get_serialnum() - Responds with the serial number of our system
+//=================================================================================================
+void CServer::handle_ctl_get_serialnum()
+{
+    u32   serialnum;
+
+    ctl_get_serialnum_rsp_t   rsp;
+
+    Config.get(SPEC_INSTRUMENT_SN, &serialnum);
+    rsp.serialnum = serialnum;
 
     control_response(&rsp, sizeof rsp);
 }

@@ -3,7 +3,7 @@
 //=================================================================================================
 #include "updspec.h"
 #include <string.h>
-
+#include <stdint.h>
 
 
 //=================================================================================================
@@ -226,7 +226,7 @@ bool CUpdSpec::get(PString key, PString* p_value)
 // get() - Looks up the value associated with a given key.  Returns true
 //         if the key was found, and false if it was not
 //=================================================================================================
-bool CUpdSpec::get(PString key, int* p_value)
+bool CUpdSpec::get(PString key, int32_t* p_value)
 {
     PString str;
 
@@ -243,6 +243,37 @@ bool CUpdSpec::get(PString key, int* p_value)
     return status;
 }
 //=================================================================================================
+
+
+
+//=================================================================================================
+// get() - Looks up the value associated with a given key.  Returns true
+//         if the key was found, and false if it was not
+//=================================================================================================
+bool CUpdSpec::get(PString key, uint32_t* p_value)
+{
+    PString str;
+
+    uint64_t value;
+
+    // We guarantee that if this lookup fails, the output value will be zero
+    if (p_value) *p_value = 0;
+
+    // Fetch the string value of the specified key
+    bool status = get(key, &str);
+
+    // Fill in the callers field with the numeric version of the value
+    if (p_value)
+    {
+        value = atoll(str);
+        *p_value = value;
+    }
+
+    // Tell the caller whether or not the key existed
+    return status;
+}
+//=================================================================================================
+
 
 
 
