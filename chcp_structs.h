@@ -94,6 +94,13 @@ struct sCHCP_RESET
     sMAC  mac;
 };
 
+struct sCHCP_ASSIGN_IP
+{
+    u8   type;
+    sMAC mac;
+    sIP  ip;
+};
+
 
 #if 0
 

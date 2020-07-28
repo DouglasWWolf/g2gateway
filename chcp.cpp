@@ -46,6 +46,7 @@ void CCHCP::main(void* p1, void* p2, void* p3)
     sCHCP_PING          & msg_ping         = *(sCHCP_PING          *)&message;
     sCHCP_PING_TO       & msg_ping_to      = *(sCHCP_PING_TO       *)&message;
     sCHCP_RESET         & msg_reset        = *(sCHCP_RESET         *)&message;
+    sCHCP_ASSIGN_IP     & msg_assign_ip    = *(sCHCP_ASSIGN_IP     *)&message;
 
     // Create a MAC address object that CHCP uses to say "this is for everyone who can hear me"
     memset(&broadcast_mac, 0, sizeof broadcast_mac);
@@ -84,6 +85,10 @@ again:
 
         case CHCP_RESET:
             handle_chcp_reset(msg_reset);
+            break;
+
+        case CHCP_ASSIGN_IP:
+            handle_chcp_assign_ip(msg_assign_ip);
             break;
     }
 
@@ -128,6 +133,31 @@ void CCHCP::handle_chcp_reset(sCHCP_RESET& msg)
     reset_server_connections();
 }
 //=================================================================================================
+
+
+
+//=================================================================================================
+// handle_chcp_assign_ip() - Changes our IP address
+//=================================================================================================
+void CCHCP::handle_chcp_assign_ip(sCHCP_ASSIGN_IP& msg)
+{
+    // If this is already our IP address, do nothing
+    if (msg.ip == Network.ip()) return;
+
+    // Make this our new IP address
+    Network.set_ip_address(msg.ip);
+
+    // Reset all of the client socket connections
+    reset_server_connections();
+
+    // Stuff the new IP into our herald
+    Heralder.build_herald();
+
+    // And send a single herald as an acknowledgement
+    Heralder.send();
+}
+//=================================================================================================
+
 
 
 
