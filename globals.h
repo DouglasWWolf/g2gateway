@@ -24,7 +24,7 @@ struct instrument_t
 // See "globals.cpp" for a description of these objects
 extern CUpdSpec     Config;
 extern CMemMap      MM;
-extern CFpgaFifo    FIFO;
+extern CFpgaFifo    CommFifo;
 extern CNetworkIF   Network;
 extern CHeralder    Heralder;
 extern instrument_t Instrument;

@@ -13,7 +13,7 @@ CUpdSpec     Config(EEPROM_DEVICE, 0x1000, "CPHD01");
 CMemMap      MM(HW_REGS_BASE, HW_REGS_SPAN);
 
 // FIFO to the Nios-II
-CFpgaFifo    FIFO;
+CFpgaFifo    CommFifo;
 
 // Manages the network interface
 CNetworkIF   Network;

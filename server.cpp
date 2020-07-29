@@ -7,7 +7,37 @@
 #include "server.h"
 #include "typedefs.h"
 #include "globals.h"
+#include "gxip_struct.h"
 #include "common.h"
+
+//=================================================================================================
+// This is how long (in milliseconds) we'll wait around for handshake from the firmware
+//=================================================================================================
+#define GXPPP_HSK_TIMEOUT 5000
+
+//=================================================================================================
+// This is how long (in milliseconds) we'll wait around for response message from the firmware
+//=================================================================================================
+#define GXPPP_RSP_TIMEOUT 15000
+
+
+//=================================================================================================
+// is_firmware_busy() - Return 'true' if the firmware has asserted its "busy" signal
+//=================================================================================================
+bool is_firmware_busy() {return false;}
+//=================================================================================================
+
+//=================================================================================================
+// dump_gxip_packet() - Handy utility for displaying GXIP packets on screen for debugging
+//=================================================================================================
+void dump_gxip_packet(u8* p)
+{
+    int length = (p[0] << 8) | p[1];
+    for (int i=0; i<length; ++i) printf("%02X ", *p++);
+    printf("\n");
+}
+//=================================================================================================
+
 
 //=================================================================================================
 // These are the commands that can be sent to the server via the special command pipe
@@ -22,24 +52,6 @@
 #define PROTOCOL_MAJOR  1
 #define PROTOCOL_MINOR  1
 //=================================================================================================
-
-
-//=================================================================================================
-// When a packet comes in from he TCP client, it will contain one of these packet types
-//=================================================================================================
-#define PRO_PKT     0
-#define CMD_PKT     1
-#define REQ_PKT     2
-#define RSP_PKT     3
-#define HSK_PKT     4
-#define MRM_PKT     5
-#define CTL_PKT     6
-#define CMD_E_PKT   9
-#define REQ_E_PKT   10
-#define RSP_E_PKT   11
-//=================================================================================================
-
-
 
 //=================================================================================================
 // Message ID for gateway control requests
@@ -217,7 +229,7 @@ bool CServer::read_gxip_msg_from_socket(int sd)
     if (read(sd, &m_gxip_packet, 2) < 2) return false;
 
     // Find out how long entire message is (including the two length bytes)
-    int msg_length = (m_gxip_packet.length_h << 8) | m_gxip_packet.length_l;
+    int msg_length = m_gxip_packet.length();
 
     // This is how many more bytes we should find in this message
     int bytes_expected = msg_length - 2;
@@ -364,10 +376,13 @@ wait_for_data:
                 break;
 
             case CMD_PKT:
-            case REQ_PKT:
             case CMD_E_PKT:
+                dispatch_to_firmware(false);
+                break;
+
+            case REQ_PKT:
             case REQ_E_PKT:
-                dispatch_to_firmware();
+                dispatch_to_firmware(true);
                 break;
 
             default:
@@ -668,16 +683,125 @@ void CServer::handle_ctl_echo()
 //=================================================================================================
 
 
+
 //=================================================================================================
-// dispatch_to_firmware() - Sends this messsage to the firmware and does the appropriate
+// dispatch_to_firmware() - Sends this message to the firmware and does the appropriate
 //                          handshaking
 //=================================================================================================
-void CServer::dispatch_to_firmware()
+void CServer::dispatch_to_firmware(bool is_request)
 {
+    // Map a GXIP packet onto the messages that will be received by the CommFifo
+    gxip_packet_t& response = *(gxip_packet_t*) CommFifo.payload;
 
+    // Send the GXIP message we just received from a client to the firmware
+    CommFifo.send_gxip(m_gxip_packet);
+
+    // Wait for a handshake from the firmware
+    while (true)
+    {
+        while (!CommFifo.read_message(GXPPP_HSK_TIMEOUT))
+        {
+            // If we didn't receive a handshake message from the firmware because it's busy,
+            // send a "busy" handshake to the host, and keep waiting for a handshake
+            if (is_firmware_busy())
+            {
+                send_busy_handshake_to_host();
+                continue;
+            }
+
+            // Otherwise, tell the host that firmware never acknowledged the receipt of the message
+            send_nak_handshake_to_host();
+            return;
+        }
+
+        // If this was the handshake we're waiting for, break out of the loop
+        if (response.type == HSK_PKT) break;
+    }
+
+    // Send that handshake back to the client.  The only handshake the firmware ever sends is an
+    // ACK, so we know this was an ACK
+    m_socket.send(&response, response.length());
+
+    // If the message we just sent to the firmware isn't a request message, we're done
+    if (!is_request) return;
+
+    // Wait for a response message from the firmware
+    while (true)
+    {
+        while (!CommFifo.read_message(GXPPP_RSP_TIMEOUT))
+        {
+            // If we didn't receive a handshake message from the firmware because it's busy,
+            // send a "busy" handshake to the host, and keep waiting for a handshake
+            if (is_firmware_busy())
+            {
+                send_busy_handshake_to_host();
+                continue;
+            }
+
+            // The firmware failed to send an expected response.  In lieu of a response,
+            // send the client an MRM (Missing Response Message)
+            send_mrm_to_host(m_gxip_packet.type, m_gxip_packet.payload[0]);
+        }
+
+        // If this is the response message we're waiting for, break out of the loop
+        if (response.type == RSP_PKT || response.type == RSP_E_PKT) break;
+    }
+
+    // And send this response back to the client
+    m_socket.send(&response, response.length());
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
+// send_nak_handshake_to_host() - Sends a NAK GXIP handshake back to the client
+//=================================================================================================
+void CServer::send_nak_handshake_to_host()
+{
+    u8 handshake[4] = {0, 4, HSK_PKT, 'N'};
+    m_socket.send(handshake, sizeof handshake);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// send_busy_handshake_to_host() - Sends a BUSY GXIP handshake back to the client
+//=================================================================================================
+void CServer::send_busy_handshake_to_host()
+{
+    u8 handshake[4] = {0, 4, HSK_PKT, 'B'};
+    m_socket.send(handshake, sizeof handshake);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// send_mrm_to_host() - Sends a "missing response message" packet to the host in lieu of a response
+//=================================================================================================
+void CServer::send_mrm_to_host(int msg_type, int msg_id)
+{
+    u8 buffer[5];
+
+    // Fill in the length
+    buffer[0] = 0;
+    buffer[1] = 5;
+
+    // Fill in the packet type
+    buffer[2] = MRM_PKT;
+
+    // Fill in the last request id
+    buffer[3] = msg_id;
+
+    // Fill in the last request type
+    buffer[4] = msg_type;
+
+    // Send the host PC the handshake packet
+    m_socket.send(buffer, sizeof buffer);
 
 }
 //=================================================================================================
+
 
 
 

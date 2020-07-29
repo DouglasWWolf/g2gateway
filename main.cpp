@@ -52,14 +52,15 @@ void init()
 {
     PString str;
 
-    // Make sure that the memory map worked
-#if defined(__arm__)
+    // Make sure that the physical memory region we need is mapped
     if (!MM.is_mapped())
     {
         printf("Memory map failed!\n");
         exit(1);
     }
-#endif
+
+    // Initialize the FIFO we use to communicate with the firmware on the Nios-II
+    CommFifo.init(MM);
 
     // Read in the configuration file
     if (!Config.load())

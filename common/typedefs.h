@@ -36,6 +36,8 @@ public:
         return m_octet[0] << 8 | m_octet[1];
     }
 
+
+
 private:
 
     u8  m_octet[2];
@@ -66,6 +68,7 @@ public:
              | m_octet[2] <<  8
              | m_octet[3];
     }
+
 
 private:
 

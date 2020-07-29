@@ -20,7 +20,6 @@
 #define CHCP_HERALD          1       // From Gateway
 #define CHCP_ASSIGN_IP       2       // From Host
 #define CHCP_HERALD_OFF      3       // From Host
-#define CHCP_DEVICE_BCAST    4       // From Host
 #define CHCP_RESET           5       // From Host
 #define CHCP_PING            6       // From Host
 #define CHCP_SET_MAC         7       // From Host
@@ -115,41 +114,6 @@ struct sCHCP_ASSIGN_LETTER
     sMAC MAC;
     u8   letter;
 };
-
-
-#if 0
-
-
-struct sCHCP_SET_MAC
-{
-    U8   type;
-    sMAC MAC;
-    sMAC newMAC;
-};
-
-struct sCHCP_ASSIGN_LETTER
-{
-    U8   type;
-    sMAC MAC;
-    U8   letter;
-};
-
-struct sCHCP_TRASH_FIRMWARE
-{
-    U8    type;
-    sMAC  MAC;
-    U32BE password;
-};
-
-
-struct sCHCP_DEVICE_BCAST
-{
-    U8          type;
-    sMAC        MAC;
-    U8          msg_length;
-    U8          msg_data[256];
-};
-#endif
 //=================================================================================================
 
 

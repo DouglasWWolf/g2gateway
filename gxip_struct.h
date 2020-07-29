@@ -1,4 +1,5 @@
 #pragma once
+#include "typedefs.h"
 
 //=================================================================================================
 // This is the maximum number of bytes in the data section of a GXPPP frame.
@@ -7,13 +8,35 @@
 //=================================================================================================
 
 
+
+//=================================================================================================
+// Possible values of the "type" field in gxip_packet_t
+//=================================================================================================
+enum gxip_type_t : unsigned char
+{
+    PRO_PKT   =  0,
+    CMD_PKT   =  1,
+    REQ_PKT   =  2,
+    RSP_PKT   =  3,
+    HSK_PKT   =  4,
+    MRM_PKT   =  5,
+    CTL_PKT   =  6,
+    CMD_E_PKT =  9,
+    REQ_E_PKT = 10,
+    RSP_E_PKT = 11
+};
+//=================================================================================================
+
+
+
 //=================================================================================================
 // This is the structure of a gxip messsage that comes from a TCP socket
 //=================================================================================================
 struct gxip_packet_t
 {
     unsigned char length_h, length_l;
-    unsigned char type;
+    gxip_type_t   type;
     unsigned char payload[GXIP_PAYLOAD_SIZE];
+    int length() {return (length_h << 8) | length_l;}
 };
 //=================================================================================================

@@ -40,7 +40,12 @@ protected:
     void          dispatch_control_request();
 
     // Dispatches a GXIP message to the firmware running in the Nios-II
-    void          dispatch_to_firmware();
+    void          dispatch_to_firmware(bool is_request);
+
+    // These are called during "dispatch_to_firmware" to send handshakes back to the host
+    void          send_nak_handshake_to_host();
+    void          send_busy_handshake_to_host();
+    void          send_mrm_to_host(int msg_type, int msg_id);
 
     // This is called to to respond to a control request
     void          control_response(void* ptr, int length);

@@ -13,7 +13,7 @@
 enum
 {
     FIFO_MSG_STRING = 0,
-    FIFO_MSG_GX     = 1
+    FIFO_MSG_GXIP   = 1
 };
 //=================================================================================================
 
@@ -149,6 +149,7 @@ void CFpgaFifo::send_generic(int message_type, int byte_count, const void* buffe
     // If the buffer is on a 32-bit boundary, shovel the data into the FIFO the fast way
     if ((address & 3) == 0)
     {
+
         uint32_t* word_ptr = (uint32_t*) ptr;
         while (word_count--) *m.p_data_out = *word_ptr++;
     }
@@ -171,13 +172,24 @@ void CFpgaFifo::send_generic(int message_type, int byte_count, const void* buffe
 
 
 //=================================================================================================
-// send_string() - Used to send a character string message to the NIOS-II
+// send_string() - Used to send a character string message to the Nios-II
 //=================================================================================================
 void CFpgaFifo::send_string(const char* ptr)
 {
     send_generic(FIFO_MSG_STRING, strlen(ptr)+1, ptr);
 }
 //=================================================================================================
+
+
+//=================================================================================================
+// send_gxip() - Sends a GXIP message to the Nios-II
+//=================================================================================================
+void CFpgaFifo::send_gxip(gxip_packet_t& message)
+{
+    send_generic(FIFO_MSG_GXIP, message.length(), &message);
+}
+//=================================================================================================
+
 
 
 
@@ -195,6 +207,33 @@ bool CFpgaFifo::is_message_waiting()
 //=================================================================================================
 
 
+//=================================================================================================
+// wait_for_message() - Waits up to a specified number of milliseconds for a message to arrive
+//=================================================================================================
+bool CFpgaFifo::wait_for_message(int timeout_ms)
+{
+    // These define the unit of time in between checks for a waiting message
+    static const int time_unit_msec = 20;
+    static const int time_unit_usec = time_unit_msec * 1000;
+
+    // Is there a message waiting right now?
+    bool is_a_message_waiting = is_message_waiting();
+
+    // If we're not supposed to wait around, just tell the caller whether there's a message waiting
+    if (timeout_ms == 0 || is_a_message_waiting) return is_a_message_waiting;
+
+    // Otherwise, start counting down
+    while (timeout_ms >= 0)
+    {
+        timeout_ms -= time_unit_msec;
+        usleep(time_unit_usec);
+        if (is_message_waiting()) return true;
+    }
+
+    // If we get here, a message never arrived
+    return false;
+}
+//=================================================================================================
 
 
 //=================================================================================================
@@ -207,10 +246,11 @@ bool CFpgaFifo::is_message_waiting()
 //              class variable msg_type   = Which kind of message (string, or GX command?)
 //              class variable payload    = The message payload
 //=================================================================================================
-bool CFpgaFifo::read_message()
+bool CFpgaFifo::read_message(int timeout_ms)
 {
+
     // If there's no message waiting in the pipe, we're done
-    if (!is_message_waiting()) return false;
+    if (!wait_for_message(timeout_ms)) return false;
 
     // Provide access to our private variables
     access();
