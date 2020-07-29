@@ -18,13 +18,15 @@
  *
  *   What are we going to do about the alive and busy lines?
  *   Also, need a way to transmit "alive" and "busy" from NIOS core to the ARM
+ *
+ *   Need a way to fetch the FPGA bitstream version
  */
 
 
 
 /*
  *
- *  To be implemnted later
+ *  To be implemented later
  *     CHCP device broadcast
  *     CTL request for comms stats
  *     CTL request to reset the firmware
