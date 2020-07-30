@@ -120,8 +120,7 @@ again:
     // We're waiting for a response message from the GX
     m_is_active = true;
 
-    // If the top bit of the command is set, it means we're supposed to
-    // ignore any handshake we receive
+    // If we're supposed to discard the ACK from the firmware, set the flag accordingly
     bool discard_handshake = (cmd & FWL_DISCARD_HSK) != 0;
 
     // If we should be waiting for a handshake from the firmware...
