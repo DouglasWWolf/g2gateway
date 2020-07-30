@@ -53,7 +53,7 @@ ARMFLAGS = -march=armv7-a -mfpu=neon -mfloat-abi=hard
 #-----------------------------------------------------------------------------
 ifeq ($(.DEFAULT_GOAL),)
     ifeq ($(PLATFORM), Linux)
-        .DEFAULT_GOAL := x86
+        .DEFAULT_GOAL := arm
     endif
 
     ifeq ($(PLATFORM), windows32)

@@ -37,6 +37,37 @@ struct gxip_packet_t
     unsigned char length_h, length_l;
     gxip_type_t   type;
     unsigned char payload[GXIP_PAYLOAD_SIZE];
-    int length() {return (length_h << 8) | length_l;}
+
+    int length()
+    {
+        return (length_h << 8) | length_l;
+    }
+
+    bool is_cmd()
+    {
+        return (type == CMD_PKT) || (type == CMD_E_PKT);
+    }
+
+    bool is_req()
+    {
+        return (type == REQ_PKT) || (type == REQ_E_PKT);
+    }
+
+    bool is_rsp()
+    {
+        return (type == RSP_PKT) || (type == RSP_E_PKT);
+    }
+
+    bool    is_ext()
+    {
+        return (type == CMD_E_PKT) || (type == RSP_E_PKT);
+    }
+
+    unsigned short id()
+    {
+        if (type == CMD_E_PKT || type == RSP_E_PKT)
+            return (payload[0] << 8) | payload[1];
+        return payload[0];
+    }
 };
 //=================================================================================================

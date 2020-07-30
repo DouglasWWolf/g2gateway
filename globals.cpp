@@ -26,6 +26,10 @@ CCHCP        CHCP;
 
 // These are the servers that handle GXIP messages
 CServer      Server[MAX_GXIP_SERVERS];
+CServer&     MainServer = Server[1];
+
+// Listens for and dispatches handshakes and responses from the firmware to the host
+CFWListener  FWListener;
 
 // This holds information about this instrument such as IP address, MAC, serial number, etc
 instrument_t Instrument;

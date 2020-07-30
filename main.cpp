@@ -4,6 +4,7 @@
 //=================================================================================================
 #include <unistd.h>
 #include <stdio.h>
+#include <signal.h>
 #include "globals.h"
 #include "history.h"
 #include "common.h"
@@ -17,7 +18,7 @@ void parse_firmware_version()
     int version = VERSION;
 
     Instrument.fw_major = version / 10000; version %= 10000;
-    Instrument.fw_minor = version / 100 ; version %= 100;
+    Instrument.fw_minor = version / 100 ;  version %= 100;
     Instrument.fw_build = version;
 }
 //=================================================================================================
@@ -36,7 +37,7 @@ bool set_initial_ip()
     // Try to fetch the default IP from the config file
     have_default_ip = Config.get(SPEC_DEFAULT_IP, &default_ip);
 
-    // If we still don't have a default IP, use this hardcoded one
+    // If we still don't have a default IP, use this hard-coded one
     if (!have_default_ip) default_ip = "10.11.14.254";
 
     // Set our network interface to the address we're supposed to startup with
@@ -126,8 +127,15 @@ void launch_servers()
 //=================================================================================================
 int main(int argc, char** argv)
 {
+
+    // Make sure that writing to a closed socket doesn't cause the program to exit
+    signal(SIGPIPE, SIG_IGN);
+
     // Read in our spec-file and initialize all of our global objects
     init();
+
+    // Launch the thread that listens for messages from the firmware
+    FWListener.spawn();
 
     // Launch and wait for the servers to all come up
     launch_servers();

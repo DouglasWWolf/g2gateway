@@ -9,6 +9,7 @@
 #include "heralder.h"
 #include "chcp.h"
 #include "server.h"
+#include "fwlistener.h"
 
 #define MAX_GXIP_SERVERS 5
 
@@ -30,6 +31,7 @@ extern CHeralder    Heralder;
 extern instrument_t Instrument;
 extern CCHCP        CHCP;
 extern CServer      Server[MAX_GXIP_SERVERS];
-
+extern CServer&     MainServer;
+extern CFWListener  FWListener;
 
 int get_live_sites();
