@@ -20,6 +20,7 @@
 #define CHCP_HERALD          1       // From Gateway
 #define CHCP_ASSIGN_IP       2       // From Host
 #define CHCP_HERALD_OFF      3       // From Host
+#define CHCP_DEVICE_BCAST    4       // From Host
 #define CHCP_RESET           5       // From Host
 #define CHCP_PING            6       // From Host
 #define CHCP_SET_MAC         7       // From Host
@@ -111,8 +112,16 @@ struct sCHCP_SET_IP
 struct sCHCP_ASSIGN_LETTER
 {
     u8   type;
-    sMAC MAC;
+    sMAC mac;
     u8   letter;
+};
+
+struct sCHCP_DEVICE_BCAST
+{
+    u8   type;
+    sMAC mac;
+    u8   msg_length;
+    u8   msg_data[256];
 };
 //=================================================================================================
 

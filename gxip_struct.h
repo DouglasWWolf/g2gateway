@@ -69,5 +69,11 @@ struct gxip_packet_t
             return (payload[0] << 8) | payload[1];
         return payload[0];
     }
+
+    void set_length(unsigned short length)
+    {
+        length_h = length >> 8;
+        length_l = length & 0xFF;
+    }
 };
 //=================================================================================================
