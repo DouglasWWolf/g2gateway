@@ -1,0 +1,30 @@
+# This is where our RAM-disk will mount
+RAMDISK=/tmp/ramdisk
+HALT=${RAMDISK}/_halt_
+
+# Find out if the RAMDISK exists
+mount | grep ramdisk >/dev/null
+if [ $? == 1 ] ; then
+    echo Creating RAM disk
+    mkdir ${RAMDISK} 2>/dev/null
+    chmod 777 ${RAMDISK}
+    mount -t tmpfs -o size=1m myramdisk ${RAMDISK}
+fi
+
+# Run our executable in a loop, restarting it every time it exits
+while :
+do
+    # Copy our executable to the RAM disk
+    cp g2gateway.arm ${RAMDISK}
+
+    # Start up our executable
+    ${RAMDISK}/g2gateway.arm 
+
+    # If the "_halt_" file exists, break out of the loop
+    if [ -f ${HALT} ]; then
+        rm ${HALT} 
+        break;
+    fi 
+done
+
+echo "Gateway Halted"
