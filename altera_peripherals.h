@@ -6,11 +6,9 @@
 
 
 
-
-
 typedef struct _sysid {                                                                                               
-        uint32_t id;                                                                                                  
-        uint32_t timestamp;                                                                                           
+    uint32_t id;
+    uint32_t timestamp;
 } sysid_t;                                                                                                            
 
 typedef struct _pio {
@@ -31,11 +29,11 @@ typedef struct _pio {
 #define SPIM_STAT_EOP (1 << 9)
 
 typedef struct _spim {
-        uint32_t rxdata;
+    uint32_t rxdata;
     uint32_t txdata;
     uint32_t status;
     uint32_t control;
-        uint32_t rsvd;
+    uint32_t rsvd;
     uint32_t slaveselect;
     uint32_t eop;
 } spimregs_t;

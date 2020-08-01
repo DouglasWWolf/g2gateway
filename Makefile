@@ -66,7 +66,7 @@ endif
 # Define the name of the compiler and what "build all" means for our platform
 #-----------------------------------------------------------------------------
 ifeq ($(PLATFORM), Linux)
-    ALL    = clean x86 arm
+    ALL    = clean arm
     ARMCXX = arm-linux-gnueabihf-g++-7
 endif
 
@@ -117,7 +117,8 @@ $(EXE).x86 : $(X86_OBJS)
 #-----------------------------------------------------------------------------
 $(EXE).arm : $(ARM_OBJS)
 	$(ARMCXX)  -pthread $(ARMFLAGS) -o $@ $(ARM_OBJS) 
- 
+	arm-linux-gnueabihf-strip $(EXE).arm
+
  .PHONY : clean x86 arm
 
 #-----------------------------------------------------------------------------

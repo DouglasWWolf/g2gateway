@@ -163,7 +163,7 @@ bool CNetworkIF::set_ip_address(PString ip_string, bool force)
 {
     sIP new_ip;
     new_ip.from(ip_string);
-    return set_ip_address(new_ip);
+    return set_ip_address(new_ip, force);
 }
 bool CNetworkIF::set_ip_address(sIP new_ip, bool force)
 {
@@ -226,6 +226,42 @@ bool CNetworkIF::set_ip_address(sIP new_ip, bool force)
 
     // Tell the world whether we were able to change the address
     return m_ip == new_ip;
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
+// get_interfaces() - Returns a vector of interface names that exist
+//=================================================================================================
+std::vector<std::string> CNetworkIF::get_interfaces()
+{
+    char iface_name[50];
+    char buffer[300];
+    CProcess process;
+    std::vector<std::string> result;
+
+    // Get the output of "ifconfig -a"
+    process.open(false, "ifconfig -a");
+
+    // Start fetching lines of output from the command we just ran
+    while (process.get_line(buffer, sizeof buffer))
+    {
+        // If there is no alpha character in the first byte, this isn't an interface name
+        if (buffer[0] < 'a' || buffer[0] > 'z') continue;
+
+        // Extract the interface name from this line
+        char* in = buffer;
+        char* out = iface_name;
+        while (*in != ' ' && *in != '\t' && *in != ':' && *in != 0) *out++ = *in++;
+        *out = 0;
+
+        // Add this interface name to our result vector
+        result.push_back(iface_name);
+    }
+
+    // Hand the vector of interface names to the caller
+    return result;
 }
 //=================================================================================================
 

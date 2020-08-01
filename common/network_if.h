@@ -4,6 +4,8 @@
 #pragma once
 #include "cppstring.h"
 #include "ip_mac.h"
+#include <vector>
+
 
 //=================================================================================================
 // CNetworkIF() - Defines a network interface
@@ -24,6 +26,9 @@ public:
     // Call these to retrieve this interface's IP and MAC addresses
     sIP     ip()  {return m_ip;}
     sMAC    mac() {return m_mac;}
+
+    // Returns a vector of interface names that exist
+    std::vector<std::string> get_interfaces();
 
 protected:
 

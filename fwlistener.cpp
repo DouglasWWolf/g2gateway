@@ -217,7 +217,7 @@ bool CFWListener::transact(gxip_packet_t& message, bool discard_ack)
     // If we're supposed to discard the handshake, set the command flag accordingly
     if (discard_ack) cmd |= FWL_DISCARD_HSK;
 
-    // If we just send a request message, the listener also needs to wait for a response
+    // If we just sent a request message, the listener also needs to wait for a response
     if (message.is_req()) cmd |= FWL_RSP;
 
     // Send this command to the "listener" thread

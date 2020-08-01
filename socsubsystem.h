@@ -23,7 +23,4 @@
 
 #define CART_DOOR_BASE  (0x00045000)
 
-//#define FLED_GREEN 0x01
-//#define FLED_RED 0x02
-
 #endif // _SOCSUBSYSTEM
