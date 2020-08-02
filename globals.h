@@ -10,6 +10,7 @@
 #include "chcp.h"
 #include "server.h"
 #include "fwlistener.h"
+#include "dlm_server.h"
 
 #define MAX_GXIP_SERVERS 4
 
@@ -37,6 +38,7 @@ extern CCHCP        CHCP;
 extern CServer      Server[MAX_GXIP_SERVERS];
 extern CServer&     MainServer;
 extern CFWListener  FWListener;
+extern CDLM         DLM;
 
 int     get_live_sites();
 void    remount_rw();

@@ -23,6 +23,9 @@ static sMAC broadcast_mac;
 //=================================================================================================
 static void reset_server_connections()
 {
+    // Reset the connection for the download manager
+    DLM.reset_connection();
+
     // Ask all of the servers to drop any connection they happen to have open
     for (int i=0; i<MAX_GXIP_SERVERS; ++i) Server[i].reset_connection();
 

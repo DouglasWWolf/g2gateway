@@ -34,7 +34,7 @@ public:
 protected:
 
     // This reads a GXIP message from the socket into m_tcp_packet
-    bool          read_gxip_msg_from_socket(int fd);
+    bool          read_gxip_msg_from_socket();
 
     // Handler for when the client asks what version of the GXIP protocol we're using
     void          handle_protocol_request();
@@ -57,7 +57,7 @@ protected:
     void          handle_ctl_get_serialnum();
     void          handle_ctl_echo();
 
-    // -1 (for the gateway master port) or 0 thru 3 (for ordinary module connections)
+    // 0 thru 3
     int           m_slot;
 
     // This is the TCP port we're listening to

@@ -1,27 +1,13 @@
 //=================================================================================================
-// server.cpp -Implements threads that manage our TCP connections to the outside world
+// dlm_server.cpp - Implements server that acts as a download manager for gateway software updates
 //=================================================================================================
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <string.h>
-#include "server.h"
+#include "dlm_server.h"
 #include "typedefs.h"
 #include "globals.h"
-#include "gxip_struct.h"
 #include "common.h"
-
-
-//=================================================================================================
-// dump_gxip_packet() - Handy utility for displaying GXIP packets on screen for debugging
-//=================================================================================================
-void dump_gxip_packet(u8* p)
-{
-    int length = (p[0] << 8) | p[1];
-    for (int i=0; i<length; ++i) printf("%02X ", *p++);
-    printf("\n");
-}
-//=================================================================================================
-
 
 //=================================================================================================
 // These are the commands that can be sent to the server via the special command pipe
@@ -31,26 +17,14 @@ void dump_gxip_packet(u8* p)
 
 
 //=================================================================================================
-// The version number of the GXIP protocol that we use to communicate with the TCP client
+// Message ID for DLM requests
 //=================================================================================================
-#define PROTOCOL_MAJOR  1
-#define PROTOCOL_MINOR  1
-//=================================================================================================
-
-//=================================================================================================
-// Message ID for gateway control requests
-//=================================================================================================
-#define CTL_GET_VERSION       1
-#define CTL_GET_COM_STATS     2
-#define CTL_GET_LIVE_SITES    3
-#define CTL_GET_MAC           4
-#define CTL_RESET             5
-#define CTL_SET_SERIALNUM     6
-#define CTL_GET_SERIALNUM     7
-#define CTL_LOOPBACK_TEST     8
-#define CTL_GET_BUSY_SITES    9
-#define CTL_ECHO             10
-#define CTL_GET_DLM_VERSION  11
+#define DLM_GET_VERSION     100
+#define DLM_GET_MAC         101
+#define DLM_FLASH_INIT      102
+#define DLM_FLASH_WRITE     103
+#define DLM_FLASH_COMMIT    104
+#define DLM_MAGIC_OFFSET    105
 //=================================================================================================
 
 
@@ -62,94 +36,11 @@ void dump_gxip_packet(u8* p)
 //=================================================================================================
 #pragma pack(push, 1)
 
-struct ctl_header_t
+struct dlm_header_t
 {
     u16be   msg_length;
-    u8      msg_type;
     u8      msg_id;
-};
-
-struct ctl_get_version_rsp_t
-{
-    ctl_header_t  header;
-    u8            major;
-    u8            minor;
-    u8            build;
-};
-
-struct ctl_get_dlm_version_rsp_t
-{
-    ctl_header_t  header;
-    u8            major;
-    u8            minor;
-    u8            build;
-};
-
-struct ctl_get_com_stats_rsp_t
-{
-    ctl_header_t  header;
-    u8            naks_in;
-    u8            naks_out;
-    u8            cans_in;
-    u8            cans_out;
-};
-
-struct ctl_get_live_sites_rsp_t
-{
-    ctl_header_t  header;
-    u8            live_site_map;
-};
-
-
-struct ctl_get_busy_sites_rsp_t
-{
-    ctl_header_t  header;
-    u8            busy_site_map;
-};
-
-struct ctl_get_mac_rsp_t
-{
-    ctl_header_t  header;
-    u8            id_type;
-    sMAC          mac;
-    u8            filler[4];
-};
-
-struct ctl_get_serialnum_rsp_t
-{
-    ctl_header_t  header;
-    u32           serialnum;  // This needs to be little endian!
-};
-
-struct ctl_set_serialnum_req_t
-{
-    ctl_header_t  header;
-    u32           serialnum;  // This needs to be little endian!
-};
-
-struct ctl_set_serialnum_rsp_t
-{
-    ctl_header_t  header;
-    u8            status;
-};
-
-struct ctl_reset_req_t
-{
-    ctl_header_t  header;
-    u8            flags;
-    u8            bitmap;
-};
-
-struct ctl_reset_rsp_t
-{
-    ctl_header_t  header;
-    u8            status;
-};
-
-struct ctl_echo_req_t
-{
-    ctl_header_t  header;
-    u8            data[256];
+    u8      data[1];
 };
 
 #pragma pack(pop)
@@ -189,28 +80,335 @@ static void drain_fd(int fd)
 
 
 
+
 //=================================================================================================
 // Constructor() - Make sure we start in a known state
 //=================================================================================================
-CServer::CServer()
+CDLM::CDLM()
 {
     // When we start, we are neither initialized, nor connected to a client
     m_is_connected   = false;
     m_is_initialized = false;
+
+    // We don't yet have an incoming DLM message
+    m_message = nullptr;
+
+    // This is the port number that our legacy gateway listened for DLM connections on
+    m_tcp_port = 24601;
+
+    // We haven't yet opened a file for writing
+    m_ofile = nullptr;
 }
 //=================================================================================================
 
 
 //=================================================================================================
+// handle_dlm_flash_init() - Creates an empty file for data to be downloaded into
+//=================================================================================================
+bool CDLM::handle_dlm_flash_init()
+{
+    m_filename = Instrument.sandbox;
+    if (m_filename.right(1) != "/") m_filename += '/';
+    m_filename += "image";
+
+    // If for some reason we already have a file open, close it!
+    if (m_ofile) fclose(m_ofile);
+
+    // Open our output file
+    m_ofile = fopen(m_filename, "wb");
+
+    printf("Create filename %s\n", m_filename.c());
+    printf("status = %i\n", m_ofile != nullptr);
+
+    // And tell the caller whether or not this worked
+    return (m_ofile != nullptr);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// handle_dlm_flash_write() - Writes data to our DLM file
+//=================================================================================================
+bool CDLM::handle_dlm_flash_write()
+{
+    // Map a response packet over our message
+    dlm_header_t& message = *(dlm_header_t*)m_message;
+
+    // If we don't have a file open, something has gone awry
+    if (m_ofile == nullptr) return false;
+
+    // This is how many bytes of data the caller wants us to write to the file
+    int data_length = message.msg_length - 3;
+
+    // Write the client's data to our file
+    fwrite(message.data, 1, data_length, m_ofile);
+
+    // And tell the caller that all is well
+    return true;
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
+// handle_dlm_flash_commit() - Closes the file we've been writing and kicks off the upgrade
+//                             process.
+//=================================================================================================
+bool CDLM::handle_dlm_flash_commit()
+{
+    // If we don't have a file open, something has gone awry
+    if (m_ofile == nullptr) return false;
+
+    // Close the file we've been writing, we're done with it
+    fclose(m_ofile);
+    m_ofile = nullptr;
+
+    // And tell the caller that all is well
+    return true;
+}
+//=================================================================================================
+
+
+
+
+
+//=================================================================================================
+// read_dlm_msg_from_socket() - Fetches a DLM message from the socket
+//=================================================================================================
+bool CDLM::read_dlm_msg_from_socket()
+{
+    u16be   msg_length;
+
+    // Make sure we don't leave an old message buffer sitting around on the heap
+    delete[] m_message;
+    m_message = nullptr;
+
+    // Read the first two bytes of the message, it's the msg length
+    if (m_socket.receive(&msg_length, 2) < 2) return false;
+
+    // Create a buffer on the heap large enough to hold this message
+    m_message = new u8[msg_length];
+
+    // Fill in the length in our message
+    m_message[0] = msg_length.m_octet[0];
+    m_message[1] = msg_length.m_octet[1];
+
+    // This is how many more bytes we should find in this message
+    int bytes_expected = msg_length - 2;
+
+    // If this can't possibly be a valid length, close the socket
+    if (bytes_expected < 1 || bytes_expected > 0x10000) return false;
+
+    // Read in the rest of the message
+    int bytes_read = m_socket.receive(m_message+2, bytes_expected);
+
+    printf("READ ENTIRE MESSAGE = %i\n", bytes_read == bytes_expected);
+
+    // Tell the caller whether we read an entire message
+    return (bytes_read == bytes_expected);
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
+// send_response() - Sends a response message back to the client
+//=================================================================================================
+void CDLM::send_response(const u8* data, int response_length)
+{
+    u8 buffer[128];
+
+    // Map a response packet over our buffer
+    dlm_header_t& response = *(dlm_header_t*)buffer;
+
+    // Packet length is the data length plus the length of the 3 byte header
+    int packet_length = response_length + 3;
+
+    // Fill in the length of the response packet
+    response.msg_length = packet_length;
+
+    // Fill in the response message ID
+    response.msg_id = m_message[2];
+
+    // Copy the caller's response data into our outgoing packet
+    memcpy(response.data, data, response_length);
+
+    // And send the response back to the client
+    m_socket.send(&response, packet_length);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// main() - When this thread spawns, execution starts here
+//=================================================================================================
+void CDLM::main(void* p1, void* p2, void* p3)
+{
+    fd_set  rfds;
+    char    special_cmd;
+    u8      rc;
+
+    // Other threads send us messages by writing to this pipe
+    pipe(m_special_pipe);
+
+    // Get a convenient name for our side of this pipe
+    int special_fd = m_special_pipe[0];
+
+    // Tell the outside world that we are initialized
+    m_is_initialized = true;
+
+wait_for_connect:
+
+    // Throw away any existing message
+    delete[] m_message;
+    m_message = nullptr;
+
+    // There is not yet a client connected to our socket
+    m_is_connected = false;
+
+    // Tell the world what's up
+    printf("Waiting for DLM connection on port %i\n", m_tcp_port);
+
+    // Create the server socket
+    if (!m_socket.create_server(m_tcp_port))
+    {
+        printf("FAILED TO CREATE SERVER ON PORT %i\n", m_tcp_port);
+    }
+
+    // Wait for a connection from the outside world
+    if (!m_socket.accept())
+    {
+        printf("FAILED TO ACCEPT CONNECTIONS ON PORT %i\n", m_tcp_port);
+    }
+
+    // There is now a client connected to our socket
+    m_is_connected = true;
+
+    // Display a message to the console
+    printf("Client connected to DLM port %i\n", m_tcp_port);
+
+    // Make sure there are no leftover commands waiting in the command pipe
+    drain_fd(special_fd);
+
+    // Turn off Nagling on the socket so that data is not buffered after we send it
+    m_socket.set_nagling(false);
+
+    // Figure out what the largest file descriptor is
+    int sd = m_socket.get_fd();
+    int max_fd = 0;
+    if (max_fd < sd        ) max_fd = sd;
+    if (max_fd < special_fd) max_fd = special_fd;
+
+
+wait_for_data:
+
+    // Throw away any existing message
+    delete[] m_message;
+    m_message = nullptr;
+
+    // We want to wake up if any data appears on the socket or on the pipe
+    FD_ZERO(&rfds);
+    FD_SET(sd,         &rfds);
+    FD_SET(special_fd, &rfds);
+
+    // Wait for data to arrive on one of our file descriptors
+    select(max_fd+1, &rfds, NULL, NULL, NULL);
+
+    // If a special command has arrived from another thread...
+    if (FD_ISSET(special_fd, &rfds))
+    {
+        // Find out what the command is
+        read(special_fd, &special_cmd, 1);
+
+        // If we're being told to forcibly close the socket connection, do so
+        if (special_cmd == SPECIAL_CLOSE)
+        {
+            // Display a message to the console
+            printf("Port %i closed by CHCP_RESET\n", m_tcp_port);
+
+            // We're no longer connected
+            m_is_connected = false;
+
+            // Close the socket
+            m_socket.close();
+
+            // And go wait for another connection
+            goto wait_for_connect;
+        }
+    }
+
+    // If data arrived on the socket...
+    if (FD_ISSET(sd, &rfds))
+    {
+        // Read in an entire GXIP message from the socket into m_tcp_packet;
+        if (!read_dlm_msg_from_socket())
+        {
+            m_socket.close();
+            printf("Port %i closed by client\n", m_tcp_port);
+            goto wait_for_connect;
+        }
+
+        // Map a DLM message structure over our message buffer
+        dlm_header_t& dlm_message = *(dlm_header_t*)m_message;
+
+        // And dispatch this GXIP message to the appropriate handler
+        switch(dlm_message.msg_id)
+        {
+            case DLM_FLASH_INIT:
+                rc = handle_dlm_flash_init();
+                send_response(&rc, 1);
+                break;
+
+            case DLM_FLASH_WRITE:
+                rc = handle_dlm_flash_write();
+                send_response(&rc, 1);
+                break;
+
+            case DLM_FLASH_COMMIT:
+                rc = handle_dlm_flash_commit();
+                send_response(&rc, 1);
+                break;
+
+            default:
+                printf("Rcvd DLM msg ID = 0x%02X\n", dlm_message.msg_id);
+                rc = 0;
+                send_response(&rc, 1);
+                break;
+        }
+    }
+
+    // And go back and wait for the next incoming message
+    goto wait_for_data;
+
+}
+//=================================================================================================
+
+
+
+
+//=================================================================================================
+// reset_connection() - Sends the server a message that says "Drop your TCP connection"
+//=================================================================================================
+void CDLM::reset_connection()
+{
+    u8 cmd = SPECIAL_CLOSE;
+    if (m_is_connected) write(m_special_pipe[1], &cmd, 1);
+}
+//=================================================================================================
+
+
+
+#if 0
+//=================================================================================================
 // read_gxip_msg_from_socket() - Fetches a GXIP message from the socket
 //=================================================================================================
-bool CServer::read_gxip_msg_from_socket()
+bool CServer::read_gxip_msg_from_socket(int sd)
 {
     char* remaining_packet = ((char*)&m_gxip_packet)+2;
     int   remaining_size   = sizeof(m_gxip_packet) - 2;
 
     // Read the first two bytes of the message, it's the msg length
-    if (m_socket.receive(&m_gxip_packet, 2) < 2) return false;
+    if (read(sd, &m_gxip_packet, 2) < 2) return false;
 
     // Find out how long entire message is (including the two length bytes)
     int msg_length = m_gxip_packet.length();
@@ -222,7 +420,7 @@ bool CServer::read_gxip_msg_from_socket()
     if (bytes_expected < 1 || bytes_expected > remaining_size) return false;
 
     // Read in the rest of the message
-    int bytes_read = m_socket.receive(remaining_packet, bytes_expected);
+    int bytes_read = read(sd, remaining_packet, bytes_expected);
 
     // Tell the caller whether we read an entire message
     return (bytes_read == bytes_expected);
@@ -341,7 +539,7 @@ wait_for_data:
     if (FD_ISSET(sd, &rfds))
     {
         // Read in an entire GXIP message from the socket into m_tcp_packet;
-        if (!read_gxip_msg_from_socket())
+        if (!read_gxip_msg_from_socket(sd))
         {
             m_socket.close();
             printf("Port %i closed by client\n", m_tcp_port);
@@ -682,4 +880,4 @@ void CServer::handle_ctl_echo()
 //=================================================================================================
 
 
-
+#endif

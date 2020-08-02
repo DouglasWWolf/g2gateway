@@ -34,8 +34,13 @@ CServer&     MainServer = Server[0];
 // Listens for and dispatches handshakes and responses from the firmware to the host
 CFWListener  FWListener;
 
+// The gateway download manager
+CDLM         DLM;
+
 // This holds information about this instrument such as IP address, MAC, serial number, etc
 instrument_t Instrument;
+
+
 
 // Utilities search for this string in our executable to find out what version it is
 const char* exe_string = "EXEVERSION " VERSION_BUILD;

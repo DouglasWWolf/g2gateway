@@ -89,7 +89,7 @@ bool setup_network()
 // read_config() - Reads in the configuration file
 //
 // On Exit:  Instrument.net_iface = The name of our network interface
-//           Instrument.sandbox   = The direcotry name of a writable RAM-disk
+//           Instrument.sandbox   = The directory name of a writable RAM-disk
 //           EEPROM object has been configured as a device or as a file
 //=================================================================================================
 void read_config()
@@ -187,6 +187,9 @@ void init()
 void launch_servers()
 {
     int i;
+
+    // Start the download manager
+    DLM.spawn();
 
     // Launch all of the normal command/request servers
     for (i=0; i<MAX_GXIP_SERVERS; ++i)
