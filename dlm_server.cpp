@@ -117,9 +117,6 @@ bool CDLM::handle_dlm_flash_init()
     // Open our output file
     m_ofile = fopen(m_filename, "wb");
 
-    printf("Create filename %s\n", m_filename.c());
-    printf("status = %i\n", m_ofile != nullptr);
-
     // And tell the caller whether or not this worked
     return (m_ofile != nullptr);
 }
@@ -201,8 +198,6 @@ bool CDLM::read_dlm_msg_from_socket()
 
     // Read in the rest of the message
     int bytes_read = m_socket.receive(m_message+2, bytes_expected);
-
-    printf("READ ENTIRE MESSAGE = %i\n", bytes_read == bytes_expected);
 
     // Tell the caller whether we read an entire message
     return (bytes_read == bytes_expected);
