@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "socsubsystem.h"
 #include "common.h"
+#include "history.h"
 
 
 // The config file manager
@@ -34,6 +35,9 @@ CFWListener  FWListener;
 // This holds information about this instrument such as IP address, MAC, serial number, etc
 instrument_t Instrument;
 
+// Utilities search for this string in our executable to find out what version it is
+// The leading space is important and has to be there for the parsing to work properly
+const char* exe_string = " g2gateway EXEVERSION " VERSION_BUILD;
 
 //=================================================================================================
 // get_live_sites() - In a regular gateway, this would be a bitmap of which slots have GX modules
@@ -42,3 +46,20 @@ instrument_t Instrument;
 //=================================================================================================
 int get_live_sites() {return 1;}
 //=================================================================================================
+
+
+//=================================================================================================
+// get_cwd() - Returns the name of the current working directory
+//=================================================================================================
+PString get_cwd()
+{
+    char buffer[256];
+
+    // Find out the name of the current working directory
+    getcwd(buffer, sizeof buffer);
+
+    // And hand the resulting string to the caller
+    return buffer;
+}
+//=================================================================================================
+

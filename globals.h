@@ -34,4 +34,5 @@ extern CServer      Server[MAX_GXIP_SERVERS];
 extern CServer&     MainServer;
 extern CFWListener  FWListener;
 
-int get_live_sites();
+int     get_live_sites();
+PString get_cwd();

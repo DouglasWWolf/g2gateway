@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <string.h>
 #include "globals.h"
 #include "history.h"
 #include "common.h"
@@ -19,11 +20,13 @@ using std::string;
 //=================================================================================================
 void parse_firmware_version()
 {
-    int version = VERSION;
+    char* p = VERSION_BUILD;
 
-    Instrument.fw_major = version / 10000; version %= 10000;
-    Instrument.fw_minor = version / 100 ;  version %= 100;
-    Instrument.fw_build = version;
+    Instrument.fw_major = atoi(p);
+    p = strchr(p+1, '.') + 1;
+    Instrument.fw_minor = atoi(p);
+    p = strchr(p+1, '.') + 1;
+    Instrument.fw_build = atoi(p);
 }
 //=================================================================================================
 
@@ -145,13 +148,20 @@ void launch_servers()
 //=================================================================================================
 
 
+
+
 #include "altera_peripherals.h"
 #include "socsubsystem.h"
+#include "cppstring.h"
+void test();
+
 //=================================================================================================
 // main() - Execution starts here
 //=================================================================================================
 int main(int argc, char** argv)
 {
+    // Tell the engineer what the current working directory is
+    printf("Started from %s\n", get_cwd().c());
 
     printf("Resetting\n");
     pio_t* reset = (pio_t*) MM[NIOS_RESET_BASE];
