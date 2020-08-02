@@ -244,7 +244,7 @@ void CServer::set_slot(int slot)
     m_slot = slot;
 
     // Determine which TCP port this server will be listening on
-    m_tcp_port = (slot == -1) ? 1066 : m_slot + 922;
+    m_tcp_port = m_slot + 922;
 }
 //=================================================================================================
 
@@ -628,7 +628,7 @@ void CServer::handle_ctl_get_serialnum()
 
     ctl_get_serialnum_rsp_t   rsp;
 
-    Config.get(SPEC_INSTRUMENT_SN, &serialnum);
+    EEPROM.get(SPEC_INSTRUMENT_SN, &serialnum);
     rsp.serialnum = serialnum;
 
     control_response(&rsp, sizeof rsp);
@@ -644,8 +644,8 @@ void CServer::handle_ctl_set_serialnum()
     ctl_set_serialnum_req_t& req = *(ctl_set_serialnum_req_t*)&m_gxip_packet;
     ctl_set_serialnum_rsp_t  rsp;
 
-    Config.set(SPEC_INSTRUMENT_SN, to_string("%u", req.serialnum));
-    Config.save();
+    EEPROM.set(SPEC_INSTRUMENT_SN, to_string("%u", req.serialnum));
+    EEPROM.save();
 
     rsp.status = 1;
 

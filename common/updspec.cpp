@@ -7,10 +7,34 @@
 
 
 //=================================================================================================
-// CUpdSpec() - Default constructor
+// configure_as_file() - Declare that this object represents a file in the file-system
 //=================================================================================================
-CUpdSpec::CUpdSpec(const char* filename, int eeprom_size, const char* header)
+void CUpdSpec::configure_as_file(const char* filename)
 {
+    m_is_file = true;
+
+    // Clear existing data from memory
+    m_lines.clear();
+    m_record_map.clear();
+
+    // Save the filename for posterity
+    m_filename = filename;
+
+    // We only need these when we're an EEPROM
+    m_header = "";
+    m_eeprom_size = 0;
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
+// configure_as_eeprom() - Declare that this spec-file is being stored in EEPROM
+//=================================================================================================
+void CUpdSpec::configure_as_eeprom(const char* filename, int eeprom_size, const char* header)
+{
+    m_is_file = false;
+
     // Clear existing data from memory
     m_lines.clear();
     m_record_map.clear();

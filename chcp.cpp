@@ -102,6 +102,19 @@ again:
             handle_chcp_device_bcast(msg_device_bcast.msg_length, msg_device_bcast.msg_data);
             is_handled = true;
             break;
+
+        case CHCP_START_DLM:
+            Instrument.is_dlm = true;
+            Heralder.build_herald();
+            is_handled = true;
+            break;
+
+        case CHCP_LAUNCH_FIRMWARE:
+            Instrument.is_dlm = false;
+            Heralder.build_herald();
+            is_handled = true;
+            break;
+
     }
 
     // If we've handled this CHCP message, go wait for the next one
@@ -230,10 +243,10 @@ void CCHCP::handle_chcp_set_ip(sIP ip)
     handle_chcp_assign_ip(ip);
 
     // Save this to our settings
-    Config.set(SPEC_DEFAULT_IP, ip.to_string());
+    EEPROM.set(SPEC_DEFAULT_IP, ip.to_string());
 
     // And save our settings to disk/EEPROM
-    Config.save();
+    EEPROM.save();
 }
 //=================================================================================================
 

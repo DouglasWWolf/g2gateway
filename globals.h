@@ -11,7 +11,7 @@
 #include "server.h"
 #include "fwlistener.h"
 
-#define MAX_GXIP_SERVERS 5
+#define MAX_GXIP_SERVERS 4
 
 struct instrument_t
 {
@@ -19,11 +19,15 @@ struct instrument_t
     int     fw_major;
     int     fw_minor;
     int     fw_build;
+    bool    is_dlm;
+    PString net_iface;
+    PString sandbox;
 };
 
 
 // See "globals.cpp" for a description of these objects
 extern CUpdSpec     Config;
+extern CUpdSpec     EEPROM;
 extern CMemMap      MM;
 extern CFpgaFifo    CommFifo;
 extern CNetworkIF   Network;
@@ -35,4 +39,6 @@ extern CServer&     MainServer;
 extern CFWListener  FWListener;
 
 int     get_live_sites();
+void    remount_rw();
+void    remount_ro();
 PString get_cwd();

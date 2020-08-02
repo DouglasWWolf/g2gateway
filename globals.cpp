@@ -6,9 +6,11 @@
 #include "common.h"
 #include "history.h"
 
+// Config file manager
+CUpdSpec     Config;
 
-// The config file manager
-CUpdSpec     Config(EEPROM_DEVICE, 0x1000, "CPHD01");
+// The EEPROM file manager
+CUpdSpec     EEPROM;
 
 // Memory map manager
 CMemMap      MM(HW_REGS_BASE, HW_REGS_SPAN);
@@ -27,7 +29,7 @@ CCHCP        CHCP;
 
 // These are the servers that handle GXIP messages
 CServer      Server[MAX_GXIP_SERVERS];
-CServer&     MainServer = Server[1];
+CServer&     MainServer = Server[0];
 
 // Listens for and dispatches handshakes and responses from the firmware to the host
 CFWListener  FWListener;
@@ -36,8 +38,7 @@ CFWListener  FWListener;
 instrument_t Instrument;
 
 // Utilities search for this string in our executable to find out what version it is
-// The leading space is important and has to be there for the parsing to work properly
-const char* exe_string = " g2gateway EXEVERSION " VERSION_BUILD;
+const char* exe_string = "EXEVERSION " VERSION_BUILD;
 
 //=================================================================================================
 // get_live_sites() - In a regular gateway, this would be a bitmap of which slots have GX modules
@@ -47,6 +48,9 @@ const char* exe_string = " g2gateway EXEVERSION " VERSION_BUILD;
 int get_live_sites() {return 1;}
 //=================================================================================================
 
+
+void remount_rw() {}
+void remount_ro() {}
 
 //=================================================================================================
 // get_cwd() - Returns the name of the current working directory

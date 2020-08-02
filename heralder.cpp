@@ -117,7 +117,7 @@ void CHeralder::build_herald()
     m_herald_cs.lock();
 
     // Fetch the instrument serial number
-    Config.get(SPEC_INSTRUMENT_SN, &instrument_sn);
+    EEPROM.get(SPEC_INSTRUMENT_SN, &instrument_sn);
 
     // To start out, clear all of the fields
     memset(&m_herald, 0, sizeof m_herald);
@@ -135,7 +135,7 @@ void CHeralder::build_herald()
     m_herald.be_ip = Network.ip();
 
     // We have no special features that we want to advertise
-    m_herald.flags = 0;
+    m_herald.flags = Instrument.is_dlm ? FLAG_DLM : FLAG_CANDLM;
 
     // Fill in the current block letter
     m_herald.block_letter = Instrument.letter;
@@ -151,7 +151,7 @@ void CHeralder::build_herald()
     // This gateway is in the G2 family
     m_herald.family = FAMILY_G2;
 
-    // Allow other threads to accesss the herald
+    // Allow other threads to access the herald
     m_herald_cs.unlock();
 }
 //=================================================================================================
