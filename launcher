@@ -9,7 +9,7 @@ if [ $? == 1 ] ; then
     echo Creating RAM disk
     mkdir ${RAMDISK} 2>/dev/null
     chmod 777 ${RAMDISK}
-    mount -t tmpfs -o size=1m myramdisk ${RAMDISK}
+    mount -t tmpfs -o size=2m myramdisk ${RAMDISK}
 fi
 
 # Run our executable in a loop, restarting it every time it exits
