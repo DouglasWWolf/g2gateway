@@ -10,6 +10,7 @@
 #include "globals.h"
 #include "cprocess.h"
 #include "common.h"
+#include "filesys.h"
 
 //=================================================================================================
 // These are the commands that can be sent to the server via the special command pipe
@@ -104,6 +105,7 @@ PString get_other_bank()
 //=================================================================================================
 
 
+
 //=================================================================================================
 // software_update() - Copies the file that was just downloaded into the "other" bank (i.e, the
 //                     bank we didn't just boot from), untars it, and if "install.sh" exists,
@@ -115,6 +117,7 @@ bool software_update(const char* original)
     bool        result = false;
     int         rc;
     FILE*       ofile;
+    int         stage = 1;
 
     // Get the path to the software bank we did *not* just boot from
     PString work_dir = get_other_bank();
@@ -132,21 +135,21 @@ bool software_update(const char* original)
     PString install_sh = work_dir + "/install.sh";
 
     // Build the name of the gateway executable
-    PString exe = work_dir + "/g2gatway.arm";
+    PString exe = work_dir + "/g2gateway.arm";
 
     // Build the name of the pointer file that we need to update
-    PString pointer = work_dir + "../pointer";
+    PString pointer = parent_dir(work_dir) + "/pointer";
 
     // Copy the tarball into our file system
+    stage = 1;
     if (!copy_file(original, tarball, true)) goto end;
 
     // Erase the original file
     remove(original);
 
     // Go unpack the tarball
+    stage = 2;
     rc = process.run(true, "cd %s && tar xvf %s", work_dir.c(), tarball.c());
-
-    // If unpacking the tarball failed, tell the caller
     if (rc != 0) goto end;
 
     // Remove the tarball, we don't need it anymore
@@ -156,15 +159,13 @@ bool software_update(const char* original)
     if (file_exists(install_sh))
     {
         // Make sure that the installer script is executable
+        stage = 3;
         rc = process.run(true, "chmod 777 %s", install_sh.c());
-
-        // If that failed, something's awry
         if (rc != 0) goto end;
 
         // Run the installer
-        rc = process.run(true, install_sh.c());
-
-        // If the installer failed, this process fails
+        stage = 4;
+        rc = process.run(true, "cd %s && %s", work_dir.c(), install_sh.c());
         if (rc != 0) goto end;
     }
 
@@ -172,13 +173,16 @@ bool software_update(const char* original)
     if (file_exists(exe))
     {
         // Make sure it's executable
+        stage = 5;
         rc = process.run(true, "chmod 777 %s", exe.c());
         if (rc != 0) goto end;
 
         // Update the pointer file
+        stage = 6;
         ofile = fopen(pointer, "wb");
         if (ofile == nullptr) goto end;
-        fputs(work_dir, ofile);
+        fputs(work_dir.c(), ofile);
+        fputs("\n", ofile);
         fclose(ofile);
 
         // And the new software is installed and ready to go
@@ -187,6 +191,18 @@ bool software_update(const char* original)
 
 
 end:
+
+    if (result)
+    {
+        // If we're not in DLM mode, go ahead and launch the new software right now
+        if (!Instrument.is_dlm) exit(0);
+    }
+    else
+    {
+        printf("software updated failed at stage %i\n", stage);
+    }
+
+    // Tell the caller whether or not this all worked
     return result;
 }
 //=================================================================================================
@@ -474,6 +490,7 @@ wait_for_data:
                 rc = handle_dlm_flash_commit();
                 send_response(&rc, 1);
                 break;
+
 
             default:
                 printf("Rcvd DLM msg ID = 0x%02X\n", dlm_message.msg_id);

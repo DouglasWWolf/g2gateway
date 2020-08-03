@@ -113,8 +113,7 @@ again:
             break;
 
         case CHCP_LAUNCH_FIRMWARE:
-            Instrument.is_dlm = false;
-            Heralder.build_herald();
+            if (Instrument.is_dlm) ::exit(0);
             is_handled = true;
             break;
 

@@ -12,6 +12,7 @@
 #include "globals.h"
 #include "history.h"
 #include "common.h"
+#include "filesys.h"
 using std::vector;
 using std::string;
 
