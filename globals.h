@@ -43,4 +43,6 @@ extern CDLM         DLM;
 int     get_live_sites();
 void    remount_rw();
 void    remount_ro();
+bool    file_exists(const char* filename);
+bool    copy_file(const char* source_fn, const char* dest_fn, bool strip=false);
 PString get_cwd();

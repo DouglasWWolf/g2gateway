@@ -4,7 +4,7 @@
 #include "cppstring.h"
 #include "cprocess.h"
 
-
+#if 0
 //=================================================================================================
 // get_other_bank() - Get the directory name of the bank that we did *not* boot from
 //=================================================================================================
@@ -106,3 +106,4 @@ void test()
     if (update_gateway_software("/system/gateway/bank_1/tarball.tgz")) exit(21);
 
 }
+#endif
