@@ -43,6 +43,7 @@ bool setup_network()
 {
     PString default_ip;
     bool force;
+    bool have_default_ip = false;
 
     // Fetch the list of network interfaces on this machine
     vector<string> ifaces = Network.get_interfaces();
@@ -61,11 +62,15 @@ bool setup_network()
     // If our desired network interface exists, lookup the IP address we should configure it to
     else
     {
-        // We don't yet know what ip address we will default to
-        bool have_default_ip = false;
+        // If the restart_ip file exists in the sandbox, load it and use that IP address
+        if (RestartIP.load())
+        {
+            have_default_ip = RestartIP.get(SPEC_DEFAULT_IP, &default_ip);
+            remove(RestartIP.filename());
+        }
 
         // Try to fetch the default IP from the config file
-        have_default_ip = EEPROM.get(SPEC_DEFAULT_IP, &default_ip);
+        if (!have_default_ip) have_default_ip = EEPROM.get(SPEC_DEFAULT_IP, &default_ip);
 
         // If we still don't have a default IP, use this hard-coded one
         if (!have_default_ip) default_ip = "10.11.14.254";
@@ -162,8 +167,6 @@ void read_config()
 //=================================================================================================
 void init()
 {
-    PString str;
-
     // Make sure that the physical memory region we need is mapped
     if (!MM.is_mapped())
     {
@@ -180,6 +183,10 @@ void init()
         printf("Missing eeprom file or device %s\n", EEPROM.filename());
         exit(1);
     }
+
+    // We're going to use this to save our IP address between reboots
+    PString filename = Instrument.sandbox + "/restart_ip";
+    RestartIP.configure_as_file(filename);
 
     // Set up the network interface we're going ot use to communicate
     setup_network();

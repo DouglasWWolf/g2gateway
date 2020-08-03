@@ -41,5 +41,7 @@ extern CServer      Server[MAX_GXIP_SERVERS];
 extern CServer&     MainServer;
 extern CFWListener  FWListener;
 extern CDLM         DLM;
+extern CUpdSpec     RestartIP;
 
 int     get_live_sites();
+void    exit_for_restart();

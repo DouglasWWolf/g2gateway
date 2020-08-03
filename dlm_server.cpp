@@ -82,7 +82,6 @@ static void drain_fd(int fd)
 //=================================================================================================
 
 
-
 //=================================================================================================
 // get_other_bank() - Get the directory name of the bank that we did *not* boot from
 //=================================================================================================
@@ -201,7 +200,7 @@ end:
     if (result)
     {
         // If we're not in DLM mode, go ahead and launch the new software right now
-        if (!Instrument.is_dlm) exit(0);
+        if (!Instrument.is_dlm) exit_for_restart();
     }
     else
     {

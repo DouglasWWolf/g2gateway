@@ -13,6 +13,9 @@ CUpdSpec     Config;
 // The EEPROM file manager
 CUpdSpec     EEPROM;
 
+// This file, when it exists, contains the IP address we should use at boot
+CUpdSpec     RestartIP;
+
 // Memory map manager
 CMemMap      MM(HW_REGS_BASE, HW_REGS_SPAN);
 
@@ -53,4 +56,25 @@ const char* exe_string = "EXEVERSION " VERSION_BUILD;
 //=================================================================================================
 int get_live_sites() {return 1;}
 //=================================================================================================
+
+
+//=================================================================================================
+// exit_for_restart() - Saves our current IP address to the sandbox and exits
+//=================================================================================================
+void exit_for_restart()
+{
+    // Get a string representation of our current IP address
+    PString current_ip = Network.ip().to_string();
+
+    // Store it in our temporary file structure
+    RestartIP.set(SPEC_DEFAULT_IP, current_ip);
+
+    // Save that to the sandbox
+    RestartIP.save();
+
+    // And exit so that the launcher can start a new version of this software
+    exit(0);
+}
+//=================================================================================================
+
 

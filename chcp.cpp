@@ -113,7 +113,7 @@ again:
             break;
 
         case CHCP_LAUNCH_FIRMWARE:
-            if (Instrument.is_dlm) ::exit(0);
+            if (Instrument.is_dlm) exit_for_restart();
             is_handled = true;
             break;
 
