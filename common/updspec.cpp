@@ -7,6 +7,31 @@
 
 
 //=================================================================================================
+// Constructor() - Intializes important fields
+//=================================================================================================
+CUpdSpec::CUpdSpec()
+{
+    m_pre_save  = nullptr;
+    m_post_save = nullptr;
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
+// set_pre_post_save() - Allows the caller to declare functions that should be called immediately
+//                       before and immediately after saving to a file
+//=================================================================================================
+void CUpdSpec::set_pre_post_save(vpvf pre, vpvf post)
+{
+    m_pre_save  = pre;
+    m_post_save = post;
+}
+//=================================================================================================
+
+
+
+//=================================================================================================
 // configure_as_file() - Declare that this object represents a file in the file-system
 //=================================================================================================
 void CUpdSpec::configure_as_file(const char* filename)
@@ -459,6 +484,9 @@ void CUpdSpec::write_to_buffer(char* buffer)
 //=================================================================================================
 bool CUpdSpec::save()
 {
+    // If we have a routine to call before saving, do it
+    if (m_pre_save) m_pre_save();
+
     // Figure out how big of a buffer we'll need
     int file_size = buffer_size();
 
@@ -480,6 +508,10 @@ bool CUpdSpec::save()
 
     // Throw away the buffer, we're done with it
     delete[] buffer;
+
+    // If we have a routine to call after saving, do it
+    if (m_post_save) m_post_save();
+
 
     // And tell the caller whether we were able to write the file
     return (ofile != nullptr);

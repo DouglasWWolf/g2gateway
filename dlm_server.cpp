@@ -119,6 +119,9 @@ bool software_update(const char* original)
     FILE*       ofile;
     int         stage = 1;
 
+    // Make the file-system writable
+    remount_rw();
+
     // Get the path to the software bank we did *not* just boot from
     PString work_dir = get_other_bank();
 
@@ -191,6 +194,9 @@ bool software_update(const char* original)
 
 
 end:
+
+    // Lock down the file system again
+    remount_ro();
 
     if (result)
     {

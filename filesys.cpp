@@ -165,8 +165,16 @@ void remount(const char* type)
     // And remount the root file-system
     process.run(true, "sync;sync;mount -o remount,%s %s /", type, device);
 }
-void remount_rw() {remount("rw");}
-void remount_ro() {remount("ro");}
+void remount_rw()
+{
+    remount("rw");
+}
+void remount_ro()
+{
+#if defined(__arm__)
+    remount("ro");
+#endif
+}
 //=================================================================================================
 
 

@@ -129,7 +129,10 @@ void read_config()
 
         // Configure our EEPROM object as either a file or as a physical EEPROM device
         if (is_file)
+        {
             EEPROM.configure_as_file(eeprom_device);
+            EEPROM.set_pre_post_save(&remount_rw, &remount_ro);
+        }
         else
             EEPROM.configure_as_eeprom(eeprom_device, 0x1000, "CPHD01");
 
@@ -221,9 +224,8 @@ void test();
 int main(int argc, char** argv)
 {
     // Tell the engineer what the current working directory is
-    printf("Started from %s\n", get_cwd().c());
+    printf("Starting g2gateway %s from %s\n", VERSION_BUILD, get_cwd().c());
 
-    printf("Resetting\n");
     pio_t* reset = (pio_t*) MM[NIOS_RESET_BASE];
     reset->dir =1;
 
@@ -238,6 +240,9 @@ int main(int argc, char** argv)
 
     // Make sure that writing to a closed socket doesn't cause the program to exit
     signal(SIGPIPE, SIG_IGN);
+
+    // Make sure that the file-system is mounted read-only
+    remount_ro();
 
     // Read our configuration file
     read_config();

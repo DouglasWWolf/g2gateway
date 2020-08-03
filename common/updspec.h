@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "cppstring.h"
 
+typedef void (*vpvf)();
+
 //=================================================================================================
 // CUpdSpec - An updateable spec-file class
 //=================================================================================================
@@ -11,11 +13,17 @@ class CUpdSpec
 {
 public:
 
+     // Constructor
+     CUpdSpec();
+
      // Call this once if this object represents a file in the file-system
      void   configure_as_file(const char* filename);
 
      // Call this once if we're storing this file in an EEPROM
      void   configure_as_eeprom(const char* filename, int eeprom_size, const char* header = "");
+
+     // Define what routines should be called just before and just after we save
+     void   set_pre_post_save(vpvf pre, vpvf post);
 
      // Read in the spec-file from a file
      bool   load();
