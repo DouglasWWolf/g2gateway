@@ -247,11 +247,11 @@ int main(int argc, char** argv)
     // Make sure that writing to a closed socket doesn't cause the program to exit
     signal(SIGPIPE, SIG_IGN);
 
-    // Make sure that the file-system is mounted read-only
-    remount_ro();
-
     // Read our configuration file
     read_config();
+
+    // Make sure that the file-system is mounted read-only
+    if (Instrument.lock_fs) remount_ro();
 
     // Read in our spec-file and initialize all of our global objects
     init();
