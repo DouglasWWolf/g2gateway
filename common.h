@@ -8,6 +8,7 @@
 #define SPEC_EEPROM_DEVICE  "EEPROM_DEVICE"
 #define SPEC_EEPROM_IS_FILE "EEPROM_IS_FILE"
 #define SPEC_SANDBOX        "SANDBOX"
+#define SPEC_LOCK_FS        "LOCK_FS"
 
 // Specs from the EEPROM
 #define SPEC_INSTRUMENT_SN  "INSTRUMENT_SN"

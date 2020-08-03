@@ -139,6 +139,12 @@ void read_config()
         // Find out where our writable sandbox is
         if (!Config.get(SPEC_SANDBOX, &Instrument.sandbox)) throw SPEC_SANDBOX;
 
+        // Find out whether we are using a locked (read-only) filesystem
+        if (!Config.get(SPEC_LOCK_FS, &str)) throw SPEC_LOCK_FS;
+
+        // Parse that string to determine whether or not we have a locked filesystem
+        Instrument.lock_fs = (str == "true" || str == "TRUE" || str == "1");
+
     }
     catch(const char* p)
     {

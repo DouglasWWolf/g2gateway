@@ -1,10 +1,11 @@
 //=================================================================================================
-// filesys.h - provides filesystem support functions
+// filesys.cpp - provides filesystem support functions
 //=================================================================================================
 #include <unistd.h>
 #include <string.h>
 #include "filesys.h"
 #include "cprocess.h"
+#include "globals.h"
 
 //=================================================================================================
 // get_cwd() - Returns the name of the current working directory
@@ -147,6 +148,9 @@ void remount(const char* type)
 {
     CProcess process;
     char device[512];
+
+    // If we're not allowing the file system to be locked, do nothing
+    if (strcmp(type, "ro") == 0 && !Instrument.lock_fs) return;
 
     // Run a "mount" command and fetch the first line
     process.open(false, "mount | grep \" on / \"");

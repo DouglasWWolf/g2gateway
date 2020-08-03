@@ -22,6 +22,7 @@ struct instrument_t
     int     fw_minor;
     int     fw_build;
     bool    is_dlm;
+    bool    lock_fs;
     PString net_iface;
     PString sandbox;
 };
