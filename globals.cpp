@@ -3,9 +3,9 @@
 //=================================================================================================
 #include <string.h>
 #include "globals.h"
-#include "socsubsystem.h"
 #include "common.h"
 #include "history.h"
+#include "sopcinfo.h"
 
 // Config file manager
 CUpdSpec     Config;
@@ -33,7 +33,7 @@ CCHCP        CHCP;
 
 // These are the servers that handle GXIP messages
 CServer      Server[MAX_GXIP_SERVERS];
-CServer&     MainServer = Server[0];
+CServer&     MainServer = Server[ASSUMED_SLOT];
 
 // Listens for and dispatches handshakes and responses from the firmware to the host
 CFWListener  FWListener;

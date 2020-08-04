@@ -91,6 +91,7 @@ bool setup_network()
 //=================================================================================================
 
 
+
 //=================================================================================================
 // read_config() - Reads in the configuration file
 //
@@ -224,13 +225,6 @@ void launch_servers()
 //=================================================================================================
 
 
-
-
-#include "altera_peripherals.h"
-#include "socsubsystem.h"
-#include "cppstring.h"
-void test();
-
 //=================================================================================================
 // main() - Execution starts here
 //=================================================================================================
@@ -238,18 +232,6 @@ int main(int argc, char** argv)
 {
     // Tell the engineer what the current working directory is
     printf("Starting g2gateway %s from %s\n", VERSION_BUILD, get_cwd().c());
-
-    pio_t* reset = (pio_t*) MM[NIOS_RESET_BASE];
-    reset->dir =1;
-
-    reset->data = 1;
-    usleep(100);
-    reset->data = 0;
-
-    usleep(100);
-    reset->data = 1;
-    usleep(100);
-    reset->data = 0;
 
     // Make sure that writing to a closed socket doesn't cause the program to exit
     signal(SIGPIPE, SIG_IGN);

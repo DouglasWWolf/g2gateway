@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include "altera_peripherals.h"
+#include "sopcinfo.h"
 #include "server.h"
 #include "typedefs.h"
 #include "globals.h"
@@ -659,10 +661,40 @@ void CServer::handle_ctl_set_serialnum()
 //=================================================================================================
 void CServer::handle_ctl_reset()
 {
+    const int ASSERT_RESET   = 1;
+    const int RELEASE_RESET = 2;
+
+    ctl_reset_req_t& req = *(ctl_reset_req_t*)&m_gxip_packet;
     ctl_reset_rsp_t  rsp;
 
-    rsp.status = 0;
+    // Get a pointer to the PIO that control's the Nios-II's reset line
+    pio_t* reset = (pio_t*) MM[NIOS_RESET_PIO];
 
+    // If the client didn't specify which modules to reset, they mean this one
+    if (req.bitmap == 0) req.bitmap = (1<<ASSUMED_SLOT);
+
+    // If they client didn't specify any flags, they want to both assert and release reset
+    if (req.flags == 0) req.flags = (ASSERT_RESET | RELEASE_RESET);
+
+    // If this device is one that should reset...
+    if (req.bitmap & (1<<ASSUMED_SLOT))
+    {
+        if (req.flags & ASSERT_RESET)
+        {
+            reset->data = 1;
+            usleep(100);
+        }
+
+        if (req.flags & RELEASE_RESET)
+        {
+            reset->data = 0;
+        }
+    }
+
+    // Tell the caller all is well
+    rsp.status = 1;
+
+    // And send the response packet to the caller
     control_response(&rsp, sizeof rsp);
 }
 //=================================================================================================

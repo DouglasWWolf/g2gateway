@@ -1,11 +1,12 @@
 //=================================================================================================
 // fpga_fifo.cpp - Implements a bidirectional 32-bit wide FIFO to the NIOS-II core
 //=================================================================================================
+#include <unistd.h>
 #include <malloc.h>
 #include <string.h>
 #include <stdint.h>
 #include "fpga_fifo.h"
-#include "socsubsystem.h"
+#include "sopcinfo.h"
 
 //=================================================================================================
 // These are the types of messages we can send on the FIFO
@@ -101,13 +102,13 @@ bool CFpgaFifo::init(CMemMap& mm)
     access();
 
     // Fetch a pointer to where we write the data to the output FIFO
-    m.p_data_out = (uint32_t*)mm[H2F_BASE];
+    m.p_data_out = (uint32_t*)mm[H2F_FIFO_DATA];
 
     // Fetch a pointer to where we read the data from the input FIFO
-    m.p_data_in  = (uint32_t*)mm[F2H_BASE];
+    m.p_data_in  = (uint32_t*)mm[F2H_FIFO_DATA];
 
     // Fetch a pointer to the input FIFO control registers
-    m.p_ctrl_in  = (altera_fifo_csr*)mm[F2H_CSR_BASE];
+    m.p_ctrl_in  = (altera_fifo_csr*)mm[F2H_FIFO_CSR];
 
     // Drain the incoming message queue just in case is has garbage in it
     while (m.p_ctrl_in->fill_level) *m.p_data_in;

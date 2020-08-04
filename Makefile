@@ -172,13 +172,29 @@ depend:
 
 # DO NOT DELETE
 
-obj_x86/chcp.o: chcp.h globals.h memmap.h fpga_fifo.h heralder.h
-obj_x86/chcp.o: chcp_structs.h
-obj_x86/fpga_fifo.o: fpga_fifo.h memmap.h socsubsystem.h altera_peripherals.h
-obj_x86/globals.o: globals.h memmap.h fpga_fifo.h heralder.h chcp_structs.h
-obj_x86/globals.o: chcp.h socsubsystem.h altera_peripherals.h common.h
-obj_x86/heralder.o: globals.h memmap.h fpga_fifo.h heralder.h chcp_structs.h
-obj_x86/heralder.o: chcp.h common.h
-obj_x86/main.o: globals.h memmap.h fpga_fifo.h heralder.h chcp_structs.h
-obj_x86/main.o: chcp.h history.h common.h
+obj_x86/chcp.o: chcp.h globals.h memmap.h fpga_fifo.h gxip_struct.h
+obj_x86/chcp.o: heralder.h chcp_structs.h server.h fwlistener.h dlm_server.h
+obj_x86/chcp.o: common.h
+obj_x86/dlm_server.o: dlm_server.h gxip_struct.h globals.h memmap.h
+obj_x86/dlm_server.o: fpga_fifo.h heralder.h chcp_structs.h chcp.h server.h
+obj_x86/dlm_server.o: fwlistener.h common.h filesys.h
+obj_x86/filesys.o: filesys.h globals.h memmap.h fpga_fifo.h gxip_struct.h
+obj_x86/filesys.o: heralder.h chcp_structs.h chcp.h server.h fwlistener.h
+obj_x86/filesys.o: dlm_server.h
+obj_x86/fpga_fifo.o: fpga_fifo.h memmap.h gxip_struct.h sopcinfo.h
+obj_x86/fwlistener.o: fwlistener.h gxip_struct.h globals.h memmap.h
+obj_x86/fwlistener.o: fpga_fifo.h heralder.h chcp_structs.h chcp.h server.h
+obj_x86/fwlistener.o: dlm_server.h
+obj_x86/globals.o: globals.h memmap.h fpga_fifo.h gxip_struct.h heralder.h
+obj_x86/globals.o: chcp_structs.h chcp.h server.h fwlistener.h dlm_server.h
+obj_x86/globals.o: common.h history.h sopcinfo.h
+obj_x86/heralder.o: globals.h memmap.h fpga_fifo.h gxip_struct.h heralder.h
+obj_x86/heralder.o: chcp_structs.h chcp.h server.h fwlistener.h dlm_server.h
+obj_x86/heralder.o: common.h
+obj_x86/main.o: globals.h memmap.h fpga_fifo.h gxip_struct.h heralder.h
+obj_x86/main.o: chcp_structs.h chcp.h server.h fwlistener.h dlm_server.h
+obj_x86/main.o: history.h common.h filesys.h altera_peripherals.h
 obj_x86/memmap.o: memmap.h
+obj_x86/server.o: altera_peripherals.h sopcinfo.h server.h gxip_struct.h
+obj_x86/server.o: globals.h memmap.h fpga_fifo.h heralder.h chcp_structs.h
+obj_x86/server.o: chcp.h fwlistener.h dlm_server.h common.h

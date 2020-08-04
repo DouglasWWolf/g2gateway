@@ -13,3 +13,7 @@
 // Specs from the EEPROM
 #define SPEC_INSTRUMENT_SN  "INSTRUMENT_SN"
 #define SPEC_DEFAULT_IP     "DEFAULT_IP"
+
+// When we operating as our own gateway, the module appears
+// to be in this slot.  (slots are number 0 thru 3)
+#define ASSUMED_SLOT        0
