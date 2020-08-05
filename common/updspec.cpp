@@ -275,6 +275,29 @@ bool CUpdSpec::get(PString key, PString* p_value)
 // get() - Looks up the value associated with a given key.  Returns true
 //         if the key was found, and false if it was not
 //=================================================================================================
+bool CUpdSpec::get(PString key, bool* p_value)
+{
+    PString str;
+
+    // Fetch the value that goes with this key
+    if (!get(key, &str)) return false;
+
+    // Find out if the value is one of the strings that means "true"
+    bool is_true = (str == "true" || str == "TRUE" || str == "True" || str == "1");
+
+    // Fill in the caller's output value with the value associated with the key
+    if (p_value) *p_value = is_true;
+
+    // Tell the caller that this field existed
+    return true;
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// get() - Looks up the value associated with a given key.  Returns true
+//         if the key was found, and false if it was not
+//=================================================================================================
 bool CUpdSpec::get(PString key, int32_t* p_value)
 {
     PString str;

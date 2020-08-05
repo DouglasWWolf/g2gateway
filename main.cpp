@@ -101,6 +101,7 @@ bool setup_network()
 //=================================================================================================
 void read_config()
 {
+    bool is_file;
     PString str, eeprom_device;
 
     // This is the name of our configuration file
@@ -128,10 +129,7 @@ void read_config()
         if (!Config.get(SPEC_EEPROM_DEVICE, &eeprom_device)) throw SPEC_EEPROM_DEVICE;
 
         // Find out if our EEPROM device is, in fact, a file in the file-system
-        if (!Config.get(SPEC_EEPROM_IS_FILE, &str)) throw SPEC_EEPROM_IS_FILE;
-
-        // Parse that string to determine whether it's a file
-        bool is_file = (str == "true" || str == "TRUE" || str == "1");
+        if (!Config.get(SPEC_EEPROM_IS_FILE, &is_file)) throw SPEC_EEPROM_IS_FILE;
 
         // Configure our EEPROM object as either a file or as a physical EEPROM device
         if (is_file)
@@ -146,10 +144,7 @@ void read_config()
         if (!Config.get(SPEC_SANDBOX, &Instrument.sandbox)) throw SPEC_SANDBOX;
 
         // Find out whether we are using a locked (read-only) filesystem
-        if (!Config.get(SPEC_LOCK_FS, &str)) throw SPEC_LOCK_FS;
-
-        // Parse that string to determine whether or not we have a locked filesystem
-        Instrument.lock_fs = (str == "true" || str == "TRUE" || str == "1");
+        if (!Config.get(SPEC_LOCK_FS, &Instrument.lock_fs)) throw SPEC_LOCK_FS;
 
     }
     catch(const char* p)

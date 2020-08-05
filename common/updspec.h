@@ -37,6 +37,9 @@ public:
      // Fetch a spec as a string
      bool   get(PString spec, PString* value = nullptr);
 
+     // Fetch a spec as a boolean
+     bool   get(PString spec, bool* value = nullptr);
+
      // Fetch a spec as an integer
      bool   get(PString spec, int32_t*  value);
      bool   get(PString spec, uint32_t* value);

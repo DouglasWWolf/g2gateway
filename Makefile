@@ -66,7 +66,7 @@ endif
 # Define the name of the compiler and what "build all" means for our platform
 #-----------------------------------------------------------------------------
 ifeq ($(PLATFORM), Linux)
-    ALL    = clean arm
+    ALL    = x86
     ARMCXX = arm-linux-gnueabihf-g++-7
 endif
 
