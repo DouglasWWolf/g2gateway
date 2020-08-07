@@ -46,6 +46,9 @@ public:
 	// Accepts an incoming connection
 	bool 	accept(CNetSock* newsock = NULL);
 
+	// This is a non-blocking accept
+	bool    accept_nonblocking();
+
 	// This waits for data to arrive on the socket
 	bool	wait_for_data(int milliseconds);
 

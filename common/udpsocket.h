@@ -20,10 +20,10 @@ public:
 
 	// Create a socket that we will send UDP packets on.
 	// dest_ip is NULL, this will be a broadcast socket
-	bool	create_sender(int port, const char* dest_ip = nullptr);
+	bool	create_sender(int port, const char* dest_ip = nullptr, const char* if_name = nullptr);
 
 	// Create a socket that we will use to receive UDP packets
-	bool	create_listener(int port);
+	bool	create_listener(int port, const char* if_name = nullptr);
 
 	// Binds this socket to a particular network interface
 	bool    bind_to(const char* interface_ip);

@@ -2,6 +2,7 @@
 // netsock.cpp - Implements a reliable socket class
 //=================================================================================================
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,10 +201,10 @@ bool CNetSock::accept(CNetSock* newsock)
 	}
 
     // Find the size of a sockaddr_in structure
-    socklen_t iAddrSize = sizeof(m_cli_addr);
+    socklen_t addr_size = sizeof(m_cli_addr);
 
     // Accept the incoming connection
-    int handle = ::accept(m_sd, (sockaddr*)&m_cli_addr, &iAddrSize);
+    int handle = ::accept(m_sd, (sockaddr*)&m_cli_addr, &addr_size);
 
     // If the call to "accept()" failed, tell the caller
     if (handle < 0)
@@ -236,6 +237,46 @@ bool CNetSock::accept(CNetSock* newsock)
     return true;
 };
 //=================================================================================================
+
+
+//=================================================================================================
+// accept_nonblock() - This accepts an incoming connection without blocking
+//=================================================================================================
+bool CNetSock::accept_nonblocking()
+{
+    int flags;
+
+    // If we're not created yet, don't even think about it
+    if (!m_is_created) return false;
+
+    // Find the size of a sockaddr_in structure
+    socklen_t addr_size = sizeof(m_cli_addr);
+
+    // Make this socket non blocking
+    flags = fcntl(m_sd, F_GETFL, 0);
+    fcntl(m_sd, F_SETFL, flags | O_NONBLOCK);
+
+    // Accept the incoming connection
+    int handle = ::accept(m_sd, (sockaddr*)&m_cli_addr, &addr_size);
+
+    // If the call to "accept()" failed, then no connection is pending
+    if (handle < 0) return false;
+
+    // Close our original socket, we don't need it anymore
+    ::close(m_sd);
+
+    // This is now the file descriptor we're talking on
+    m_sd = handle;
+
+    // Make this socket non blocking
+    flags = fcntl(m_sd, F_GETFL, 0);
+    fcntl(m_sd, F_SETFL, flags & ~O_NONBLOCK);
+
+    // And tell the caller that he got connected
+    return true;
+};
+//=================================================================================================
+
 
 
 //=================================================================================================

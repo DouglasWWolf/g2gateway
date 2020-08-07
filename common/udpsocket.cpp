@@ -21,7 +21,7 @@ UDPSocket::~UDPSocket() {if (m_fd > -1) close(m_fd);}
 //=================================================================================================
 // create_sender() - Create a socket useful for sending UDP packets
 //=================================================================================================
-bool UDPSocket::create_sender(int port, const char* dest_ip)
+bool UDPSocket::create_sender(int port, const char* dest_ip, const char* if_name)
 {
 	int broadcast = 1;
 
@@ -53,6 +53,8 @@ bool UDPSocket::create_sender(int port, const char* dest_ip)
     m_to_addr.sin_addr.s_addr = inet_addr(dest_ip);
     m_to_addr.sin_port=htons(port);
 
+    // If the caller provided an interface name, bind to that interface
+    if (if_name) setsockopt(m_fd, SOL_SOCKET, SO_BINDTODEVICE, if_name, strlen(if_name));
 
     // Tell the caller that all is well
     return true;
@@ -63,7 +65,7 @@ bool UDPSocket::create_sender(int port, const char* dest_ip)
 //=================================================================================================
 // create_listener() - Creates a socket for listening on a UDP port
 //=================================================================================================
-bool UDPSocket::create_listener(int port)
+bool UDPSocket::create_listener(int port, const char* if_name)
 {
 	sockaddr_in addr;
 
@@ -79,12 +81,15 @@ bool UDPSocket::create_listener(int port)
     // Bind the socket to the specified port
     addr.sin_family = AF_INET;
     addr.sin_port = htons (port);
-    addr.sin_addr.s_addr = htonl (INADDR_ANY);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
     if (bind(m_fd, (sockaddr *) &addr, sizeof (addr)) < 0)
     {
     	printf("Call to bind() failed for port %i\n", port);
     	return false;
     }
+
+    // If the caller provided an interface name, bind to that interface
+    if (if_name) setsockopt(m_fd, SOL_SOCKET, SO_BINDTODEVICE, if_name, strlen(if_name));
 
     // Tell the caller that all is well
     return true;
