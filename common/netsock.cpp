@@ -67,6 +67,9 @@ CNetSock::CNetSock()
 
     // Make sure our descriptor doesn't point at anything valid!
     m_sd = -1;
+
+    // We're not listening for a connection
+    m_is_listening = false;
 }
 //=================================================================================================
 
@@ -128,6 +131,9 @@ bool CNetSock::connect(string server_name, int port)
 //=================================================================================================
 bool CNetSock::create_server(int port)
 {
+    // Close the socket if it's open
+    close();
+
 	// Create the socket
 	m_sd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
@@ -200,6 +206,9 @@ bool CNetSock::accept(CNetSock* newsock)
 		return false;
 	}
 
+    // The socket is now listening
+    m_is_listening = true;
+
     // Find the size of a sockaddr_in structure
     socklen_t addr_size = sizeof(m_cli_addr);
 
@@ -248,6 +257,12 @@ bool CNetSock::accept_nonblocking()
 
     // If we're not created yet, don't even think about it
     if (!m_is_created) return false;
+
+    // Tell the OS to start listening at this socket's port number
+    if (!m_is_listening) listen(m_sd, 1);
+
+    // The socket is now listening
+    m_is_listening = true;
 
     // Find the size of a sockaddr_in structure
     socklen_t addr_size = sizeof(m_cli_addr);
@@ -479,6 +494,7 @@ void CNetSock::close()
 {
     if (m_sd != -1) ::close(m_sd);
     m_sd = -1;
+    m_is_listening = false;
 }
 //=================================================================================================
 

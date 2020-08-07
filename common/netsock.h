@@ -88,8 +88,11 @@ protected:
 	// The file descriptor of our socket
 	int		    m_sd;
 
-	// 'true' if Create() has been called
+	// 'true' if create() has been called
 	bool	    m_is_created;
+
+	// Will be true if listen() has been called on this open socket
+	bool        m_is_listening;
 
 	// If a call fails, the error string goes here
 	std::string m_error_str;
